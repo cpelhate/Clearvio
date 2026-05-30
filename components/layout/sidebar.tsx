@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -160,28 +160,45 @@ export function Sidebar() {
 function ThemeToggle({ collapsed }: { collapsed: boolean }) {
   const [theme, setTheme] = useState<"light" | "dark" | "system">("system")
 
-  const cycleTheme = () => {
-    const next = theme === "light" ? "dark" : theme === "dark" ? "system" : "light"
-    setTheme(next)
+  // Lire le thème stocké au montage
+  useEffect(() => {
+    const stored = localStorage.getItem("theme")
+    if (stored === "dark" || stored === "light") {
+      setTheme(stored)
+    } else {
+      setTheme("system")
+    }
+  }, [])
+
+  const applyTheme = (next: "light" | "dark" | "system") => {
+    const html = document.documentElement
     if (next === "dark") {
-      document.documentElement.classList.add("dark")
+      html.classList.add("dark")
       localStorage.setItem("theme", "dark")
     } else if (next === "light") {
-      document.documentElement.classList.remove("dark")
+      html.classList.remove("dark")
       localStorage.setItem("theme", "light")
     } else {
       localStorage.removeItem("theme")
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-      document.documentElement.classList.toggle("dark", prefersDark)
+      html.classList.toggle("dark", prefersDark)
     }
+    setTheme(next)
+  }
+
+  const cycleTheme = () => {
+    const next = theme === "light" ? "dark" : theme === "dark" ? "system" : "light"
+    applyTheme(next)
   }
 
   const Icon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor
+  const label = theme === "dark" ? "Mode sombre" : theme === "light" ? "Mode clair" : "Thème système"
 
   return (
     <button
       onClick={cycleTheme}
-      title={collapsed ? "Thème" : undefined}
+      title={collapsed ? label : undefined}
+      aria-label={label}
       style={{
         display: "flex",
         alignItems: "center",
@@ -202,7 +219,7 @@ function ThemeToggle({ collapsed }: { collapsed: boolean }) {
       }}
     >
       <Icon size={18} strokeWidth={1.5} style={{ flexShrink: 0 }} />
-      {!collapsed && (theme === "dark" ? "Mode sombre" : theme === "light" ? "Mode clair" : "Thème système")}
+      {!collapsed && label}
     </button>
   )
 }
