@@ -58,3 +58,78 @@ model InviteToken {
 
   @@map("invite_tokens")
 }
+
+enum ProjectStatus {
+  INITIALISATION
+  EN_COURS
+  EN_ATTENTE
+  CRITIQUE
+  TERMINE
+  ARCHIVE
+}
+
+enum ProjectMemberRole {
+  CO_RESPONSABLE
+  CONTRIBUTEUR
+  OBSERVATEUR
+}
+
+enum CustomFieldType {
+  TEXT_COURT
+  TEXT_LONG
+  NOMBRE
+  DATE
+  BOOLEEN
+  LISTE
+  UTILISATEUR
+}
+
+model Project {
+  id             String        @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  status         ProjectStatus @default(INITIALISATION)
+  startDate      DateTime?
+  endDate        DateTime?
+  category       String?
+  color          String        @default("#1D3461")
+  managerId      String
+  createdBy      String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  archivedAt     DateTime?
+
+  members        ProjectMember[]
+  customFields   ProjectCustomField[]
+
+  @@map("projects")
+}
+
+model ProjectMember {
+  id        String            @id @default(cuid())
+  projectId String
+  userId    String
+  role      ProjectMemberRole @default(CONTRIBUTEUR)
+  joinedAt  DateTime          @default(now())
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+model ProjectCustomField {
+  id             String          @id @default(cuid())
+  projectId      String?
+  organizationId String?
+  name           String
+  type           CustomFieldType
+  options        Json?
+  isTemplate     Boolean         @default(false)
+  order          Int             @default(0)
+
+  project        Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_custom_fields")
+}
