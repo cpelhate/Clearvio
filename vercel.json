@@ -1,4 +1,4 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npx prisma generate && pnpm run build"
+  "buildCommand": "npx prisma generate && npx prisma db push --accept-data-loss && pnpm run build"
 }
