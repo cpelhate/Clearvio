@@ -31,10 +31,21 @@ export default function InscriptionPage() {
     })
     if (error) {
       setError(error.message)
-    } else {
-      router.push("/tableau-de-bord")
-      router.refresh()
+      setLoading(false)
+      return
     }
+
+    // Créer l'organisation dans Prisma après le signup Supabase
+    try {
+      await fetch("/api/auth/setup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgName }),
+      })
+    } catch {}
+
+    router.push("/tableau-de-bord")
+    router.refresh()
     setLoading(false)
   }
 
