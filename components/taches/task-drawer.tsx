@@ -42,7 +42,7 @@ export function TaskDrawer({ task, onClose, onUpdate, onDelete }: TaskDrawerProp
     onClose()
   }
 
-  const inputStyle: React.CSSProperties = {
+  const inputStyle = {
     width: '100%', padding: '8px 12px',
     border: '1px solid var(--color-border-default)',
     borderRadius: 'var(--radius-md)', fontSize: 14,
@@ -65,7 +65,7 @@ export function TaskDrawer({ task, onClose, onUpdate, onDelete }: TaskDrawerProp
         borderLeft: '1px solid var(--color-border-subtle)',
         boxShadow: '-20px 0 60px rgba(0,0,0,0.10)',
         display: 'flex', flexDirection: 'column',
-        animation: 'slideIn 220ms var(--ease-default)',
+        animation: 'slideIn 220ms ease',
       }}>
         {/* Header */}
         <div style={{
@@ -136,7 +136,7 @@ export function TaskDrawer({ task, onClose, onUpdate, onDelete }: TaskDrawerProp
               <select
                 value={task.priority}
                 onChange={e => save('priority', e.target.value)}
-                style={{ ...inputStyle, height: 32, padding: '0 8px', fontSize: 13, color: TASK_PRIORITY_COLORS[task.priority as TaskPriority] }}
+                style={{ ...inputStyle, height: 32, padding: '0 8px', fontSize: 13, color: TASK_PRIORITY_COLORS[task.priority] }}
               >
                 {PRIORITY_OPTIONS.map(p => (
                   <option key={p} value={p}>{TASK_PRIORITY_LABELS[p]}</option>

@@ -6,6 +6,9 @@ import { ArrowLeft, Settings2, Users, LayoutList, Columns3, GanttChart, Calendar
 import { Header } from '@/components/layout/header'
 import { StatusBadge } from '@/components/projets/status-badge'
 import { Project } from '@/types/project'
+import { useTasks } from '@/hooks/use-tasks'
+import { TaskListView } from '@/components/taches/task-list-view'
+import { TaskKanbanView } from '@/components/taches/task-kanban-view'
 
 const tabs = [
   { id: 'liste', label: 'Liste', icon: LayoutList },
@@ -186,26 +189,46 @@ export default function ProjetPage() {
   )
 }
 
-function TabContent({ tab, projectId: _projectId }: { tab: string; projectId: string }) {
+function TabContent({ tab, projectId }: { tab: string; projectId: string }) {
+  const { tasks, loading, createTask, updateTask, deleteTask } = useTasks(projectId)
+
   const comingSoon = (label: string) => (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      justifyContent: 'center', minHeight: 300, gap: 12,
-    }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 12 }}>
       <p style={{ fontSize: 17, fontWeight: 500, color: 'var(--color-text-primary)' }}>{label}</p>
-      <p style={{ fontSize: 14, color: 'var(--color-text-tertiary)' }}>
-        Cette vue sera disponible prochainement.
-      </p>
+      <p style={{ fontSize: 14, color: 'var(--color-text-tertiary)' }}>Cette vue sera disponible prochainement.</p>
+    </div>
+  )
+
+  if (loading) return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {[1,2,3].map(i => <div key={i} style={{ height: 40, background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-md)', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
     </div>
   )
 
   switch (tab) {
-    case 'liste':      return comingSoon('Vue Liste')
-    case 'kanban':     return comingSoon('Vue Kanban')
-    case 'gantt':      return comingSoon('Vue Gantt')
+    case 'liste':
+      return (
+        <TaskListView
+          tasks={tasks}
+          projectId={projectId}
+          onCreateTask={createTask}
+          onUpdateTask={updateTask}
+          onDeleteTask={deleteTask}
+        />
+      )
+    case 'kanban':
+      return (
+        <TaskKanbanView
+          tasks={tasks}
+          onCreateTask={createTask}
+          onUpdateTask={updateTask}
+          onDeleteTask={deleteTask}
+        />
+      )
+    case 'gantt':    return comingSoon('Vue Gantt')
     case 'calendrier': return comingSoon('Vue Calendrier')
-    case 'risques':    return comingSoon('Registre des risques')
-    case 'membres':    return comingSoon('Membres du projet')
-    default:           return null
+    case 'risques':  return comingSoon('Registre des risques')
+    case 'membres':  return comingSoon('Membres du projet')
+    default: return null
   }
 }
