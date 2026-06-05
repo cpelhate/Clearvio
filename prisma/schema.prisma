@@ -132,3 +132,61 @@ model ProjectCustomField {
 
   @@map("project_custom_fields")
 }
+
+enum TaskStatus {
+  A_FAIRE
+  EN_COURS
+  EN_REVUE
+  TERMINE
+  BLOQUE
+}
+
+enum TaskPriority {
+  BASSE
+  NORMALE
+  HAUTE
+  CRITIQUE
+}
+
+enum DependencyType {
+  FIN_DEBUT
+  DEBUT_DEBUT
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  projectId   String
+  parentId    String?
+  title       String
+  description String?
+  status      TaskStatus   @default(A_FAIRE)
+  priority    TaskPriority @default(NORMALE)
+  assigneeId  String?
+  startDate   DateTime?
+  dueDate     DateTime?
+  order       Int          @default(0)
+  level       Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  parent      Task?   @relation("TaskHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Task[]  @relation("TaskHierarchy")
+
+  dependsOn   TaskDependency[] @relation("DependentTask")
+  blockedBy   TaskDependency[] @relation("BlockingTask")
+
+  @@map("tasks")
+}
+
+model TaskDependency {
+  id              String         @id @default(cuid())
+  dependentTaskId String
+  blockingTaskId  String
+  type            DependencyType @default(FIN_DEBUT)
+
+  dependentTask   Task @relation("DependentTask", fields: [dependentTaskId], references: [id], onDelete: Cascade)
+  blockingTask    Task @relation("BlockingTask", fields: [blockingTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([dependentTaskId, blockingTaskId])
+  @@map("task_dependencies")
+}
