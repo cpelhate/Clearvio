@@ -2,13 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Settings2, Users, LayoutList, Columns3, GanttChart, CalendarDays, ShieldAlert } from 'lucide-react'
+import { ArrowLeft, Settings2, Users, LayoutList, Columns3, GanttChart, CalendarDays, ShieldAlert, Diamond, Package, Target } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { StatusBadge } from '@/components/projets/status-badge'
 import { Project } from '@/types/project'
 import { useTasks } from '@/hooks/use-tasks'
 import { TaskListView } from '@/components/taches/task-list-view'
 import { TaskKanbanView } from '@/components/taches/task-kanban-view'
+import { MilestonesView } from '@/components/jalons/milestones-view'
+import { DeliverablesView } from '@/components/jalons/deliverables-view'
+import { ObjectivesView } from '@/components/jalons/objectives-view'
 
 const tabs = [
   { id: 'liste', label: 'Liste', icon: LayoutList },
@@ -16,6 +19,9 @@ const tabs = [
   { id: 'gantt', label: 'Gantt', icon: GanttChart },
   { id: 'calendrier', label: 'Calendrier', icon: CalendarDays },
   { id: 'risques', label: 'Risques', icon: ShieldAlert },
+  { id: 'jalons', label: 'Jalons', icon: Diamond },
+  { id: 'livrables', label: 'Livrables', icon: Package },
+  { id: 'objectifs', label: 'Objectifs', icon: Target },
   { id: 'membres', label: 'Membres', icon: Users },
 ]
 
@@ -228,6 +234,9 @@ function TabContent({ tab, projectId }: { tab: string; projectId: string }) {
     case 'gantt':    return comingSoon('Vue Gantt')
     case 'calendrier': return comingSoon('Vue Calendrier')
     case 'risques':  return comingSoon('Registre des risques')
+    case 'jalons':   return <MilestonesView projectId={projectId} />
+    case 'livrables': return <DeliverablesView projectId={projectId} />
+    case 'objectifs': return <ObjectivesView projectId={projectId} />
     case 'membres':  return comingSoon('Membres du projet')
     default: return null
   }
