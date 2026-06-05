@@ -190,3 +190,71 @@ model TaskDependency {
   @@unique([dependentTaskId, blockingTaskId])
   @@map("task_dependencies")
 }
+
+enum MilestoneStatus {
+  A_VENIR
+  ATTEINT
+  MANQUE
+  REPORTE
+}
+
+enum DeliverableStatus {
+  A_FAIRE
+  EN_COURS
+  LIVRE
+  VALIDE
+  REJETE
+}
+
+enum ObjectiveStatus {
+  PREVU
+  EN_COURS
+  ATTEINT
+  ABANDONNE
+}
+
+model Milestone {
+  id            String          @id @default(cuid())
+  projectId     String
+  title         String
+  plannedDate   DateTime
+  actualDate    DateTime?
+  status        MilestoneStatus @default(A_VENIR)
+  showOnGantt   Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  deliverables  Deliverable[]
+
+  @@map("milestones")
+}
+
+model Deliverable {
+  id           String            @id @default(cuid())
+  projectId    String
+  milestoneId  String?
+  title        String
+  description  String?
+  responsibleId String?
+  plannedDate  DateTime?
+  status       DeliverableStatus @default(A_FAIRE)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  milestone    Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+
+  @@map("deliverables")
+}
+
+model ProjectObjective {
+  id               String          @id @default(cuid())
+  projectId        String
+  title            String
+  successIndicator String?
+  status           ObjectiveStatus @default(PREVU)
+  order            Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@map("project_objectives")
+}
