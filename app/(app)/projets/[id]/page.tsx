@@ -15,6 +15,7 @@ import { ObjectivesView } from '@/components/jalons/objectives-view'
 import { GanttChart } from '@/components/gantt/gantt-chart'
 import { useGanttData } from '@/hooks/use-gantt-data'
 import { EditProjectModal } from '@/components/projets/edit-project-modal'
+import { RisksView } from '@/components/risques/risks-view'
 
 const tabs = [
   { id: 'liste', label: 'Liste', icon: LayoutList },
@@ -252,7 +253,7 @@ function TabContent({ tab, projectId }: { tab: string; projectId: string }) {
       )
     case 'gantt':    return <GanttViewTab projectId={projectId} />
     case 'calendrier': return comingSoon('Vue Calendrier')
-    case 'risques':  return comingSoon('Registre des risques')
+    case 'risques':  return <RisksView projectId={projectId} />
     case 'jalons':   return <MilestonesView projectId={projectId} />
     case 'livrables': return <DeliverablesView projectId={projectId} />
     case 'objectifs': return <ObjectivesView projectId={projectId} />

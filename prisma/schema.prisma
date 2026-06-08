@@ -258,3 +258,38 @@ model ProjectObjective {
 
   @@map("project_objectives")
 }
+
+enum RiskProbability {
+  FAIBLE
+  MOYEN
+  ELEVE
+}
+
+enum RiskImpact {
+  FAIBLE
+  MOYEN
+  ELEVE
+}
+
+enum RiskStatus {
+  OUVERT
+  EN_COURS
+  RESOLU
+  ACCEPTE
+}
+
+model ProjectRisk {
+  id          String          @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  probability RiskProbability @default(MOYEN)
+  impact      RiskImpact      @default(MOYEN)
+  status      RiskStatus      @default(OUVERT)
+  mitigation  String?
+  order       Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@map("project_risks")
+}
