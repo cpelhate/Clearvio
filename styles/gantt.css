@@ -1,0 +1,127 @@
+/* Surcharges Clearvio pour frappe-gantt */
+.gantt-container {
+  background: var(--color-bg-primary);
+  border: none;
+  font-family: var(--font-primary);
+}
+
+.gantt .grid-background {
+  fill: var(--color-bg-primary);
+}
+
+.gantt .grid-header {
+  fill: var(--color-bg-secondary);
+  stroke: var(--color-border-subtle);
+  stroke-width: 1;
+}
+
+.gantt .grid-row {
+  fill: transparent;
+}
+
+.gantt .grid-row:nth-child(even) {
+  fill: var(--color-bg-secondary);
+  opacity: 0.5;
+}
+
+.gantt .row-line {
+  stroke: var(--color-border-subtle);
+}
+
+.gantt .tick {
+  stroke: var(--color-border-subtle);
+  stroke-width: 0.5;
+}
+
+.gantt .today-highlight {
+  fill: var(--color-accent-bg);
+  opacity: 0.4;
+}
+
+.gantt .arrow {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.gantt .bar {
+  fill: var(--color-accent-default);
+  stroke: none;
+  border-radius: 4px;
+}
+
+.gantt .bar-progress {
+  fill: var(--color-accent-strong);
+  border-radius: 4px;
+}
+
+.gantt .bar-label {
+  fill: #ffffff;
+  font-size: 12px;
+  font-family: var(--font-primary);
+}
+
+.gantt .bar-label.big {
+  fill: var(--color-text-primary);
+}
+
+.gantt .bar-wrapper:hover .bar {
+  fill: var(--color-accent-strong);
+}
+
+.gantt .bar-wrapper.active .bar {
+  fill: var(--color-accent-strong);
+}
+
+/* Jalons (diamonds) */
+.gantt .bar-milestone .bar {
+  fill: var(--color-warning-default);
+}
+
+.gantt .bar-milestone .bar-progress {
+  fill: var(--color-warning-default);
+}
+
+/* Popup tooltip */
+.gantt-container .popup-wrapper {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  font-family: var(--font-primary);
+  padding: 12px 16px;
+  min-width: 200px;
+}
+
+.gantt-container .popup-wrapper .title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin-bottom: 6px;
+}
+
+.gantt-container .popup-wrapper .subtitle {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.gantt-container .popup-wrapper .pointer {
+  display: none;
+}
+
+/* Upper header (mois) */
+.gantt .upper-text {
+  font-size: 12px;
+  font-weight: 500;
+  fill: var(--color-text-secondary);
+  font-family: var(--font-primary);
+  text-transform: capitalize;
+}
+
+/* Lower header (jours/semaines) */
+.gantt .lower-text {
+  font-size: 11px;
+  fill: var(--color-text-tertiary);
+  font-family: var(--font-mono);
+}

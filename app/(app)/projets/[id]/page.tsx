@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Settings2, Users, LayoutList, Columns3, GanttChart, CalendarDays, ShieldAlert, Diamond, Package, Target } from 'lucide-react'
+import { ArrowLeft, Settings2, Users, LayoutList, Columns3, GanttChart as GanttChartIcon, CalendarDays, ShieldAlert, Diamond, Package, Target } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { StatusBadge } from '@/components/projets/status-badge'
 import { Project } from '@/types/project'
@@ -12,11 +12,13 @@ import { TaskKanbanView } from '@/components/taches/task-kanban-view'
 import { MilestonesView } from '@/components/jalons/milestones-view'
 import { DeliverablesView } from '@/components/jalons/deliverables-view'
 import { ObjectivesView } from '@/components/jalons/objectives-view'
+import { GanttChart } from '@/components/gantt/gantt-chart'
+import { useGanttData } from '@/hooks/use-gantt-data'
 
 const tabs = [
   { id: 'liste', label: 'Liste', icon: LayoutList },
   { id: 'kanban', label: 'Kanban', icon: Columns3 },
-  { id: 'gantt', label: 'Gantt', icon: GanttChart },
+  { id: 'gantt', label: 'Gantt', icon: GanttChartIcon },
   { id: 'calendrier', label: 'Calendrier', icon: CalendarDays },
   { id: 'risques', label: 'Risques', icon: ShieldAlert },
   { id: 'jalons', label: 'Jalons', icon: Diamond },
@@ -231,7 +233,7 @@ function TabContent({ tab, projectId }: { tab: string; projectId: string }) {
           onDeleteTask={deleteTask}
         />
       )
-    case 'gantt':    return comingSoon('Vue Gantt')
+    case 'gantt':    return <GanttViewTab projectId={projectId} />
     case 'calendrier': return comingSoon('Vue Calendrier')
     case 'risques':  return comingSoon('Registre des risques')
     case 'jalons':   return <MilestonesView projectId={projectId} />
@@ -240,4 +242,16 @@ function TabContent({ tab, projectId }: { tab: string; projectId: string }) {
     case 'membres':  return comingSoon('Membres du projet')
     default: return null
   }
+}
+
+function GanttViewTab({ projectId }: { projectId: string }) {
+  const { tasks, milestones, loading } = useGanttData(projectId)
+
+  if (loading) return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {[1,2,3].map(i => <div key={i} style={{ height: 48, background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-md)' }} />)}
+    </div>
+  )
+
+  return <GanttChart tasks={tasks} milestones={milestones} projectId={projectId} />
 }
