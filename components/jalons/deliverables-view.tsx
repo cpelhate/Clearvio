@@ -21,6 +21,8 @@ export function DeliverablesView({ projectId }: DeliverablesViewProps) {
   const [form, setForm] = useState({ title: '', description: '', milestoneId: '', plannedDate: '', status: 'A_FAIRE' as DeliverableStatus })
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -52,6 +54,16 @@ export function DeliverablesView({ projectId }: DeliverablesViewProps) {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     })
+    await load()
+  }
+
+  const saveTitle = async (id: string) => {
+    if (!editTitle.trim()) { setEditingId(null); return }
+    await fetch(`/api/projects/${projectId}/deliverables/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: editTitle }),
+    })
+    setEditingId(null)
     await load()
   }
 
@@ -136,7 +148,24 @@ export function DeliverablesView({ projectId }: DeliverablesViewProps) {
               gap: 16, padding: '10px 16px', alignItems: 'center',
               borderBottom: idx < deliverables.length - 1 ? '1px solid var(--color-border-subtle)' : 'none',
             }}>
-              <span style={{ fontSize: 14, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.title}</span>
+              {editingId === d.id ? (
+                <input
+                  autoFocus
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                  onBlur={() => saveTitle(d.id)}
+                  onKeyDown={e => { if (e.key === 'Enter') saveTitle(d.id); if (e.key === 'Escape') setEditingId(null) }}
+                  style={{ height: 28, padding: '0 8px', fontSize: 14, border: '1px solid var(--color-accent-default)', borderRadius: 'var(--radius-sm)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none', fontFamily: 'var(--font-primary)', width: '100%' }}
+                />
+              ) : (
+                <span
+                  onClick={() => { setEditingId(d.id); setEditTitle(d.title) }}
+                  title="Cliquer pour modifier"
+                  style={{ fontSize: 14, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'text' }}
+                >
+                  {d.title}
+                </span>
+              )}
               <select
                 value={d.status}
                 onChange={e => handleStatusChange(d.id, e.target.value as DeliverableStatus)}

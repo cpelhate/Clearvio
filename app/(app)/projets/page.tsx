@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { FolderKanban, Plus, Search, Calendar, Users } from 'lucide-react'
+import { FolderKanban, Plus, Search, Calendar, Users, MoreHorizontal } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { CreateProjectModal } from '@/components/projets/create-project-modal'
+import { EditProjectModal } from '@/components/projets/edit-project-modal'
 import { StatusBadge } from '@/components/projets/status-badge'
 import { Project } from '@/types/project'
 
@@ -19,6 +20,8 @@ export default function ProjetsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
+  const [editProject, setEditProject] = useState<Project | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -147,11 +150,50 @@ export default function ProjetsPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                   <h3 style={{
                     fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary)',
-                    letterSpacing: '-0.01em', flex: 1, marginRight: 12,
+                    letterSpacing: '-0.01em', flex: 1, marginRight: 8,
                   }}>
                     {project.name}
                   </h3>
-                  <StatusBadge status={project.status} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    <StatusBadge status={project.status} />
+                    <div style={{ position: 'relative' }}>
+                      <button
+                        onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === project.id ? null : project.id) }}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          width: 26, height: 26, background: 'none',
+                          border: '1px solid transparent', borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer', color: 'var(--color-text-tertiary)',
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-tertiary)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border-subtle)' }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'transparent' }}
+                      >
+                        <MoreHorizontal size={14} strokeWidth={1.5} />
+                      </button>
+                      {openMenuId === project.id && (
+                        <>
+                          <div onClick={e => { e.stopPropagation(); setOpenMenuId(null) }} style={{ position: 'fixed', inset: 0, zIndex: 49 }} />
+                          <div style={{
+                            position: 'absolute', right: 0, top: 30, zIndex: 50,
+                            background: 'var(--color-bg-elevated)',
+                            border: '1px solid var(--color-border-default)',
+                            borderRadius: 'var(--radius-md)',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                            minWidth: 160, overflow: 'hidden',
+                          }}>
+                            <button
+                              onClick={e => { e.stopPropagation(); setEditProject(project); setOpenMenuId(null) }}
+                              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 14px', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-primary)' }}
+                              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-secondary)'}
+                              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'none'}
+                            >
+                              Modifier
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Description */}
@@ -201,6 +243,15 @@ export default function ProjetsPage() {
       </div>
 
       <CreateProjectModal open={showModal} onClose={() => { setShowModal(false); load() }} />
+      {editProject && (
+        <EditProjectModal
+          project={editProject}
+          open={true}
+          onClose={() => setEditProject(null)}
+          onSaved={load}
+          onDeleted={() => { setEditProject(null); load() }}
+        />
+      )}
     </>
   )
 }

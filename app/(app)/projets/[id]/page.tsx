@@ -14,6 +14,7 @@ import { DeliverablesView } from '@/components/jalons/deliverables-view'
 import { ObjectivesView } from '@/components/jalons/objectives-view'
 import { GanttChart } from '@/components/gantt/gantt-chart'
 import { useGanttData } from '@/hooks/use-gantt-data'
+import { EditProjectModal } from '@/components/projets/edit-project-modal'
 
 const tabs = [
   { id: 'liste', label: 'Liste', icon: LayoutList },
@@ -38,6 +39,7 @@ export default function ProjetPage() {
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('liste')
+  const [showSettings, setShowSettings] = useState(false)
 
   useEffect(() => {
     fetch(`/api/projects/${id}`)
@@ -147,12 +149,14 @@ export default function ProjetPage() {
                 </div>
               </div>
             </div>
-            <button style={{
-              display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px',
-              background: 'transparent', border: '1px solid var(--color-border-default)',
-              borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer',
-              color: 'var(--color-text-secondary)',
-            }}>
+            <button
+              onClick={() => setShowSettings(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px',
+                background: 'transparent', border: '1px solid var(--color-border-default)',
+                borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer',
+                color: 'var(--color-text-secondary)',
+              }}>
               <Settings2 size={14} strokeWidth={1.5} /> Paramètres
             </button>
           </div>
@@ -188,6 +192,19 @@ export default function ProjetPage() {
           })}
         </div>
       </div>
+
+      {project && showSettings && (
+        <EditProjectModal
+          project={project}
+          open={showSettings}
+          onClose={() => setShowSettings(false)}
+          onSaved={() => {
+            setShowSettings(false)
+            fetch(`/api/projects/${id}`).then(r => r.ok ? r.json() : null).then(data => { if (data) setProject(data) })
+          }}
+          onDeleted={() => router.push('/projets')}
+        />
+      )}
 
       {/* Contenu de l'onglet */}
       <div style={{ padding: 'var(--space-8) var(--space-10)' }}>

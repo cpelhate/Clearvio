@@ -21,6 +21,8 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
   const [saving, setSaving] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editValues, setEditValues] = useState<{ title: string; plannedDate: string }>({ title: '', plannedDate: '' })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -56,6 +58,21 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
     if (confirmDelete !== id) { setConfirmDelete(id); return }
     await fetch(`/api/projects/${projectId}/milestones/${id}`, { method: 'DELETE' })
     setConfirmDelete(null)
+    await load()
+  }
+
+  const startEdit = (m: Milestone) => {
+    setEditingId(m.id)
+    setEditValues({ title: m.title, plannedDate: m.plannedDate ? m.plannedDate.split('T')[0] : '' })
+  }
+
+  const saveEdit = async (id: string) => {
+    if (!editValues.title.trim()) { setEditingId(null); return }
+    await fetch(`/api/projects/${projectId}/milestones/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: editValues.title, plannedDate: editValues.plannedDate || undefined }),
+    })
+    setEditingId(null)
     await load()
   }
 
@@ -166,15 +183,43 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
                   transform: 'rotate(45deg)', flexShrink: 0,
                 }} />
 
-                {/* Titre */}
-                <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>
-                  {m.title}
-                </span>
-
-                {/* Date */}
-                <span style={{ fontSize: 13, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
-                  {formatDate(m.plannedDate)}
-                </span>
+                {/* Titre / Date — éditables inline */}
+                {editingId === m.id ? (
+                  <>
+                    <input
+                      autoFocus
+                      value={editValues.title}
+                      onChange={e => setEditValues(p => ({ ...p, title: e.target.value }))}
+                      onBlur={() => saveEdit(m.id)}
+                      onKeyDown={e => { if (e.key === 'Enter') saveEdit(m.id); if (e.key === 'Escape') setEditingId(null) }}
+                      style={{ flex: 1, height: 28, padding: '0 8px', fontSize: 14, border: '1px solid var(--color-accent-default)', borderRadius: 'var(--radius-sm)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none', fontFamily: 'var(--font-primary)' }}
+                    />
+                    <input
+                      type="date"
+                      value={editValues.plannedDate}
+                      onChange={e => setEditValues(p => ({ ...p, plannedDate: e.target.value }))}
+                      onBlur={() => saveEdit(m.id)}
+                      onKeyDown={e => { if (e.key === 'Enter') saveEdit(m.id); if (e.key === 'Escape') setEditingId(null) }}
+                      style={{ height: 28, padding: '0 8px', fontSize: 13, border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-sm)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none', fontFamily: 'var(--font-primary)', width: 150 }}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <span
+                      onClick={() => startEdit(m)}
+                      title="Cliquer pour modifier"
+                      style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)', cursor: 'text' }}
+                    >
+                      {m.title}
+                    </span>
+                    <span
+                      onClick={() => startEdit(m)}
+                      style={{ fontSize: 13, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', flexShrink: 0, cursor: 'text' }}
+                    >
+                      {formatDate(m.plannedDate)}
+                    </span>
+                  </>
+                )}
 
                 {/* Statut */}
                 <select
