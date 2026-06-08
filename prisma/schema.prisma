@@ -304,3 +304,16 @@ model ProjectRisk {
 
   @@map("project_risks")
 }
+
+model ProjectDocument {
+  id           String   @id @default(cuid())
+  projectId    String
+  name         String
+  storagePath  String
+  mimeType     String?
+  size         Int?
+  uploadedBy   String
+  createdAt    DateTime @default(now())
+
+  @@map("project_documents")
+}

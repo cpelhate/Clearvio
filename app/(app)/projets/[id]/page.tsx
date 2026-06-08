@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Settings2, Users, LayoutList, Columns3, GanttChart as GanttChartIcon, CalendarDays, ShieldAlert, Diamond, Package, Target, FileText } from 'lucide-react'
+import { ArrowLeft, Settings2, Users, LayoutList, Columns3, GanttChart as GanttChartIcon, CalendarDays, ShieldAlert, Diamond, Package, Target, FileText, Paperclip } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { StatusBadge } from '@/components/projets/status-badge'
 import { Project } from '@/types/project'
@@ -18,6 +18,7 @@ import { useGanttData } from '@/hooks/use-gantt-data'
 import { EditProjectModal } from '@/components/projets/edit-project-modal'
 import { RisksView } from '@/components/risques/risks-view'
 import { MembersView } from '@/components/projets/members-view'
+import { DocumentsView } from '@/components/documents/documents-view'
 import { ProjectMember } from '@/types/project'
 
 const tabs = [
@@ -30,6 +31,7 @@ const tabs = [
   { id: 'livrables', label: 'Livrables', icon: Package },
   { id: 'objectifs', label: 'Objectifs', icon: Target },
   { id: 'membres', label: 'Membres', icon: Users },
+  { id: 'documents', label: 'Documents', icon: Paperclip },
 ]
 
 function formatDate(dateStr: string | null): string {
@@ -276,6 +278,7 @@ function TabContent({ tab, projectId, members }: { tab: string; projectId: strin
     case 'livrables': return <DeliverablesView projectId={projectId} />
     case 'objectifs': return <ObjectivesView projectId={projectId} />
     case 'membres':  return <MembersView members={members} />
+    case 'documents': return <DocumentsView projectId={projectId} />
     default: return null
   }
 }
