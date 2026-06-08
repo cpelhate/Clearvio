@@ -258,7 +258,7 @@ function TabContent({ tab, projectId, members }: { tab: string; projectId: strin
     </div>
   )
 
-  if (loading) return (
+  const taskLoadingSkeleton = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {[1,2,3].map(i => <div key={i} style={{ height: 40, background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-md)', animation: 'pulse 1.5s ease-in-out infinite' }} />)}
     </div>
@@ -266,7 +266,7 @@ function TabContent({ tab, projectId, members }: { tab: string; projectId: strin
 
   switch (tab) {
     case 'liste':
-      return (
+      return loading ? taskLoadingSkeleton : (
         <TaskListView
           tasks={tasks}
           projectId={projectId}
@@ -276,7 +276,7 @@ function TabContent({ tab, projectId, members }: { tab: string; projectId: strin
         />
       )
     case 'kanban':
-      return (
+      return loading ? taskLoadingSkeleton : (
         <TaskKanbanView
           tasks={tasks}
           projectId={projectId}
