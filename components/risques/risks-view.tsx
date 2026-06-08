@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, ShieldAlert, Pencil, Trash2, X, Grid3x3 } from 'lucide-react'
+import { useToast } from '@/components/ui/toast'
 import {
   ProjectRisk,
   RiskProbability,
@@ -246,6 +247,7 @@ interface RisksViewProps {
 }
 
 export function RisksView({ projectId }: RisksViewProps) {
+  const { toast } = useToast()
   const [risks, setRisks] = useState<ProjectRisk[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -288,6 +290,7 @@ export function RisksView({ projectId }: RisksViewProps) {
       await load()
       setShowForm(false)
       setForm({ title: '', description: '', probability: 'MOYEN', impact: 'MOYEN', mitigation: '' })
+      toast('Risque ajouté avec succès')
     }
     setSaving(false)
   }
@@ -306,6 +309,7 @@ export function RisksView({ projectId }: RisksViewProps) {
     await fetch(`/api/projects/${projectId}/risks/${id}`, { method: 'DELETE' })
     setConfirmDelete(null)
     await load()
+    toast('Risque supprimé', 'error')
   }
 
   const openCount = risks.filter(r => r.status === 'OUVERT' || r.status === 'EN_COURS').length

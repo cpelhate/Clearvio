@@ -186,7 +186,10 @@ export default function ProjetPage() {
         <div style={{
           display: 'flex', borderBottom: '1px solid var(--color-border-subtle)',
           marginTop: 0, gap: 0,
-        }}>
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        } as React.CSSProperties}>
           {tabs.map(tab => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id

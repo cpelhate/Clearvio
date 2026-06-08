@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X, Trash2 } from 'lucide-react'
 import { PROJECT_COLORS, ProjectStatus, Project } from '@/types/project'
+import { useToast } from '@/components/ui/toast'
 
 interface EditProjectModalProps {
   project: Project
@@ -22,6 +23,7 @@ const STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
 ]
 
 export function EditProjectModal({ project, open, onClose, onSaved, onDeleted }: EditProjectModalProps) {
+  const { toast } = useToast()
   const [form, setForm] = useState({
     name: project.name,
     description: project.description || '',
@@ -50,6 +52,7 @@ export function EditProjectModal({ project, open, onClose, onSaved, onDeleted }:
         body: JSON.stringify(form),
       })
       if (!res.ok) { const d = await res.json(); setError(d.error || 'Erreur'); setLoading(false); return }
+      toast('Projet mis à jour avec succès')
       onSaved()
       onClose()
     } catch {
@@ -63,6 +66,7 @@ export function EditProjectModal({ project, open, onClose, onSaved, onDeleted }:
     setLoading(true)
     try {
       await fetch(`/api/projects/${project.id}`, { method: 'DELETE' })
+      toast('Projet supprimé', 'error')
       onClose()
       onDeleted?.()
     } catch {

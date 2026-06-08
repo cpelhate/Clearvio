@@ -122,6 +122,12 @@ export default function ConnexionPage() {
           Créer un compte
         </Link>
       </p>
+
+      <p style={{ marginTop: 16, fontSize: 12, color: "var(--color-text-disabled)", textAlign: "center" }}>
+        <Link href="/politique-confidentialite" style={{ color: "var(--color-text-tertiary)", textDecoration: "none" }}>
+          Politique de confidentialité
+        </Link>
+      </p>
     </>
   )
 }
