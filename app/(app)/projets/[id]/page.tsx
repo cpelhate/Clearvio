@@ -19,7 +19,9 @@ import { EditProjectModal } from '@/components/projets/edit-project-modal'
 import { RisksView } from '@/components/risques/risks-view'
 import { MembersView } from '@/components/projets/members-view'
 import { DocumentsView } from '@/components/documents/documents-view'
+import { CalendarView } from '@/components/calendrier/calendar-view'
 import { ProjectMember } from '@/types/project'
+import { Milestone } from '@/types/milestone'
 
 const tabs = [
   { id: 'liste', label: 'Liste', icon: LayoutList },
@@ -239,6 +241,15 @@ export default function ProjetPage() {
 
 function TabContent({ tab, projectId, members }: { tab: string; projectId: string; members: ProjectMember[] }) {
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasks(projectId)
+  const [milestones, setMilestones] = useState<Milestone[]>([])
+
+  useEffect(() => {
+    if (tab === 'calendrier') {
+      fetch(`/api/projects/${projectId}/milestones`)
+        .then(r => r.ok ? r.json() : [])
+        .then(setMilestones)
+    }
+  }, [tab, projectId])
 
   const comingSoon = (label: string) => (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 12 }}>
@@ -275,7 +286,7 @@ function TabContent({ tab, projectId, members }: { tab: string; projectId: strin
         />
       )
     case 'gantt':    return <GanttViewTab projectId={projectId} />
-    case 'calendrier': return comingSoon('Vue Calendrier')
+    case 'calendrier': return <CalendarView tasks={tasks} milestones={milestones} />
     case 'risques':  return <RisksView projectId={projectId} />
     case 'jalons':   return <MilestonesView projectId={projectId} />
     case 'livrables': return <DeliverablesView projectId={projectId} />
