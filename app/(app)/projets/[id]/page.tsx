@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Settings2, Users, LayoutList, Columns3, GanttChart as GanttChartIcon, CalendarDays, ShieldAlert, Diamond, Package, Target } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowLeft, Settings2, Users, LayoutList, Columns3, GanttChart as GanttChartIcon, CalendarDays, ShieldAlert, Diamond, Package, Target, FileText } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { StatusBadge } from '@/components/projets/status-badge'
 import { Project } from '@/types/project'
@@ -150,16 +151,30 @@ export default function ProjetPage() {
                 </div>
               </div>
             </div>
-            <button
-              onClick={() => setShowSettings(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px',
-                background: 'transparent', border: '1px solid var(--color-border-default)',
-                borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer',
-                color: 'var(--color-text-secondary)',
-              }}>
-              <Settings2 size={14} strokeWidth={1.5} /> Paramètres
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Link
+                href={`/projets/${id}/rapport`}
+                target="_blank"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px',
+                  background: 'transparent', border: '1px solid var(--color-border-default)',
+                  borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer',
+                  color: 'var(--color-text-secondary)', textDecoration: 'none',
+                }}
+              >
+                <FileText size={14} strokeWidth={1.5} /> Rapport
+              </Link>
+              <button
+                onClick={() => setShowSettings(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px',
+                  background: 'transparent', border: '1px solid var(--color-border-default)',
+                  borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer',
+                  color: 'var(--color-text-secondary)',
+                }}>
+                <Settings2 size={14} strokeWidth={1.5} /> Paramètres
+              </button>
+            </div>
           </div>
         </div>
 
