@@ -7,6 +7,7 @@ import { TaskDrawer } from './task-drawer'
 
 interface TaskKanbanViewProps {
   tasks: Task[]
+  projectId: string
   onCreateTask: (data: { title: string; status?: TaskStatus }) => Promise<unknown>
   onUpdateTask: (id: string, data: Partial<Task>) => Promise<unknown>
   onDeleteTask: (id: string) => Promise<unknown>
@@ -24,7 +25,7 @@ function isOverdue(d: string | null, status: TaskStatus) {
   return new Date(d) < new Date()
 }
 
-export function TaskKanbanView({ tasks, onCreateTask, onUpdateTask, onDeleteTask }: TaskKanbanViewProps) {
+export function TaskKanbanView({ tasks, projectId, onCreateTask, onUpdateTask, onDeleteTask }: TaskKanbanViewProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [addingIn, setAddingIn] = useState<TaskStatus | null>(null)
   const [newTitle, setNewTitle] = useState('')
@@ -202,6 +203,7 @@ export function TaskKanbanView({ tasks, onCreateTask, onUpdateTask, onDeleteTask
       {/* Drawer */}
       <TaskDrawer
         task={selectedTask}
+        projectId={projectId}
         onClose={() => setSelectedTask(null)}
         onUpdate={async (id, data) => { await onUpdateTask(id, data); setSelectedTask(prev => prev ? { ...prev, ...data } : null) }}
         onDelete={onDeleteTask}

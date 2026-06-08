@@ -179,7 +179,7 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
   )
 }
 
-export function TaskListView({ tasks, projectId: _projectId, onCreateTask, onUpdateTask, onDeleteTask }: TaskListViewProps) {
+export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onDeleteTask }: TaskListViewProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [addingChildOf, setAddingChildOf] = useState<string | null>(null)
   const [newRootTitle, setNewRootTitle] = useState('')
@@ -303,6 +303,7 @@ export function TaskListView({ tasks, projectId: _projectId, onCreateTask, onUpd
       {/* Drawer */}
       <TaskDrawer
         task={selectedTask}
+        projectId={projectId}
         onClose={() => setSelectedTask(null)}
         onUpdate={async (id, data) => { await onUpdateTask(id, data); setSelectedTask(prev => prev ? { ...prev, ...data } : null) }}
         onDelete={onDeleteTask}

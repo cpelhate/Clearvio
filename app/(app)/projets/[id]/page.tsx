@@ -17,6 +17,8 @@ import { GanttChart } from '@/components/gantt/gantt-chart'
 import { useGanttData } from '@/hooks/use-gantt-data'
 import { EditProjectModal } from '@/components/projets/edit-project-modal'
 import { RisksView } from '@/components/risques/risks-view'
+import { MembersView } from '@/components/projets/members-view'
+import { ProjectMember } from '@/types/project'
 
 const tabs = [
   { id: 'liste', label: 'Liste', icon: LayoutList },
@@ -224,13 +226,13 @@ export default function ProjetPage() {
 
       {/* Contenu de l'onglet */}
       <div style={{ padding: 'var(--space-8) var(--space-10)' }}>
-        <TabContent tab={activeTab} projectId={id} />
+        <TabContent tab={activeTab} projectId={id} members={project.members} />
       </div>
     </>
   )
 }
 
-function TabContent({ tab, projectId }: { tab: string; projectId: string }) {
+function TabContent({ tab, projectId, members }: { tab: string; projectId: string; members: ProjectMember[] }) {
   const { tasks, loading, createTask, updateTask, deleteTask } = useTasks(projectId)
 
   const comingSoon = (label: string) => (
@@ -261,6 +263,7 @@ function TabContent({ tab, projectId }: { tab: string; projectId: string }) {
       return (
         <TaskKanbanView
           tasks={tasks}
+          projectId={projectId}
           onCreateTask={createTask}
           onUpdateTask={updateTask}
           onDeleteTask={deleteTask}
@@ -272,7 +275,7 @@ function TabContent({ tab, projectId }: { tab: string; projectId: string }) {
     case 'jalons':   return <MilestonesView projectId={projectId} />
     case 'livrables': return <DeliverablesView projectId={projectId} />
     case 'objectifs': return <ObjectivesView projectId={projectId} />
-    case 'membres':  return comingSoon('Membres du projet')
+    case 'membres':  return <MembersView members={members} />
     default: return null
   }
 }

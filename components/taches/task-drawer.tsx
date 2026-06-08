@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react'
 import { X, Trash2 } from 'lucide-react'
 import { Task, TaskStatus, TaskPriority, TASK_STATUS_LABELS, TASK_PRIORITY_LABELS, TASK_PRIORITY_COLORS } from '@/types/task'
+import { TaskComments } from './task-comments'
+import { createClient } from '@/lib/supabase/client'
 
 interface TaskDrawerProps {
   task: Task | null
+  projectId: string
   onClose: () => void
   onUpdate: (taskId: string, data: Partial<Task>) => Promise<unknown>
   onDelete: (taskId: string) => Promise<unknown>
@@ -14,11 +17,16 @@ interface TaskDrawerProps {
 const STATUS_OPTIONS: TaskStatus[] = ['A_FAIRE', 'EN_COURS', 'EN_REVUE', 'TERMINE', 'BLOQUE']
 const PRIORITY_OPTIONS: TaskPriority[] = ['BASSE', 'NORMALE', 'HAUTE', 'CRITIQUE']
 
-export function TaskDrawer({ task, onClose, onUpdate, onDelete }: TaskDrawerProps) {
+export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: TaskDrawerProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null))
+  }, [])
 
   useEffect(() => {
     if (task) {
@@ -172,6 +180,15 @@ export function TaskDrawer({ task, onClose, onUpdate, onDelete }: TaskDrawerProp
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }}
             />
           </div>
+
+          {/* Commentaires */}
+          {currentUserId && (
+            <TaskComments
+              projectId={projectId}
+              taskId={task.id}
+              currentUserId={currentUserId}
+            />
+          )}
         </div>
       </div>
 
