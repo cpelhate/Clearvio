@@ -30,7 +30,14 @@ export async function PATCH(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-  const member = await prisma.organizationMember.findFirst({ where: { userId: user.id } })
+  let member: Awaited<ReturnType<typeof prisma.organizationMember.findFirst>>
+  try {
+    member = await prisma.organizationMember.findFirst({ where: { userId: user.id } })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[smtp PATCH findFirst]', msg)
+    return NextResponse.json({ error: `findFirst: ${msg}` }, { status: 500 })
+  }
   if (!member || member.role !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
 
   const body = await req.json()

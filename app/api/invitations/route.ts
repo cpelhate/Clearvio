@@ -82,19 +82,23 @@ export async function GET(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-  const member = await prisma.organizationMember.findFirst({
-    where: { userId: user.id },
-  })
-  if (!member || member.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+  try {
+    const member = await prisma.organizationMember.findFirst({ where: { userId: user.id } })
+    if (!member || member.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+    }
+
+    const invites = await prisma.inviteToken.findMany({
+      where: { organizationId: member.organizationId, usedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return NextResponse.json(invites)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[invitations GET]', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
-
-  const invites = await prisma.inviteToken.findMany({
-    where: { organizationId: member.organizationId, usedAt: null, expiresAt: { gt: new Date() } },
-    orderBy: { createdAt: 'desc' },
-  })
-
-  return NextResponse.json(invites)
 }
 
 export async function DELETE(req: NextRequest) {
