@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
-export default function InscriptionPage() {
+function InscriptionForm() {
   const [step, setStep] = useState(1)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -15,6 +15,8 @@ export default function InscriptionPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const inviteToken = searchParams.get('token')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -44,7 +46,7 @@ export default function InscriptionPage() {
       })
     } catch {}
 
-    router.push("/tableau-de-bord")
+    router.push(inviteToken ? `/invitation/${inviteToken}` : "/tableau-de-bord")
     router.refresh()
     setLoading(false)
   }
@@ -126,5 +128,13 @@ export default function InscriptionPage() {
         </Link>
       </p>
     </>
+  )
+}
+
+export default function InscriptionPage() {
+  return (
+    <Suspense>
+      <InscriptionForm />
+    </Suspense>
   )
 }

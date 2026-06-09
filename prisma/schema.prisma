@@ -19,23 +19,22 @@ model Organization {
 
   members     OrganizationMember[]
   invites     InviteToken[]
+  smtpConfig  SmtpConfig?
 
   @@map("organizations")
 }
 
-enum MemberRole {
+enum OrgRole {
   ADMIN
-  MANAGER
-  PROJECT_MANAGER
-  COLLABORATOR
+  MEMBRE
 }
 
 model OrganizationMember {
-  id             String       @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
   userId         String
-  role           MemberRole   @default(COLLABORATOR)
-  joinedAt       DateTime     @default(now())
+  role           OrgRole  @default(MEMBRE)
+  joinedAt       DateTime @default(now())
 
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -44,18 +43,41 @@ model OrganizationMember {
 }
 
 model InviteToken {
-  id             String       @id @default(cuid())
+  id          String            @id @default(cuid())
   organizationId String
-  email          String
-  role           MemberRole   @default(COLLABORATOR)
-  token          String       @unique @default(cuid())
-  expiresAt      DateTime
-  usedAt         DateTime?
-  createdAt      DateTime     @default(now())
+  email       String
+  orgRole     OrgRole           @default(MEMBRE)
+  projectRole ProjectMemberRole @default(OBSERVATEUR)
+  allProjects Boolean           @default(false)
+  projectIds  String[]          @default([])
+  message     String?
+  createdBy   String
+  token       String            @unique @default(cuid())
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime          @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("invite_tokens")
+}
+
+model SmtpConfig {
+  id             String   @id @default(cuid())
+  organizationId String   @unique
+  host           String
+  port           Int      @default(587)
+  secure         Boolean  @default(false)
+  user           String
+  password       String
+  fromEmail      String
+  fromName       String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@map("invite_tokens")
+  @@map("smtp_configs")
 }
 
 enum ProjectStatus {

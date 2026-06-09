@@ -1,16 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
-export default function ConnexionPage() {
+function ConnexionForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const inviteToken = searchParams.get('token')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -21,7 +23,7 @@ export default function ConnexionPage() {
     if (error) {
       setError("Email ou mot de passe incorrect.")
     } else {
-      router.push("/tableau-de-bord")
+      router.push(inviteToken ? `/invitation/${inviteToken}` : "/tableau-de-bord")
       router.refresh()
     }
     setLoading(false)
@@ -49,15 +51,10 @@ export default function ConnexionPage() {
             placeholder="vous@exemple.fr"
             required
             style={{
-              width: "100%",
-              height: 36,
-              padding: "0 12px",
+              width: "100%", height: 36, padding: "0 12px",
               border: "1px solid var(--color-border-default)",
-              borderRadius: "var(--radius-md)",
-              fontSize: 14,
-              color: "var(--color-text-primary)",
-              background: "var(--color-bg-primary)",
-              outline: "none",
+              borderRadius: "var(--radius-md)", fontSize: 14,
+              color: "var(--color-text-primary)", background: "var(--color-bg-primary)", outline: "none",
             }}
           />
         </div>
@@ -78,15 +75,10 @@ export default function ConnexionPage() {
             placeholder="••••••••"
             required
             style={{
-              width: "100%",
-              height: 36,
-              padding: "0 12px",
+              width: "100%", height: 36, padding: "0 12px",
               border: "1px solid var(--color-border-default)",
-              borderRadius: "var(--radius-md)",
-              fontSize: 14,
-              color: "var(--color-text-primary)",
-              background: "var(--color-bg-primary)",
-              outline: "none",
+              borderRadius: "var(--radius-md)", fontSize: 14,
+              color: "var(--color-text-primary)", background: "var(--color-bg-primary)", outline: "none",
             }}
           />
         </div>
@@ -97,21 +89,13 @@ export default function ConnexionPage() {
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            height: 36,
-            background: loading ? "var(--color-accent-subtle)" : "var(--color-accent-default)",
-            color: "var(--color-accent-text)",
-            border: "none",
-            borderRadius: "var(--radius-md)",
-            fontSize: 14,
-            fontWeight: 500,
-            cursor: loading ? "not-allowed" : "pointer",
-            transition: "all 150ms",
-          }}
-        >
+        <button type="submit" disabled={loading} style={{
+          height: 36,
+          background: loading ? "var(--color-accent-subtle)" : "var(--color-accent-default)",
+          color: "var(--color-accent-text)", border: "none",
+          borderRadius: "var(--radius-md)", fontSize: 14, fontWeight: 500,
+          cursor: loading ? "not-allowed" : "pointer", transition: "all 150ms",
+        }}>
           {loading ? "Connexion..." : "Se connecter"}
         </button>
       </form>
@@ -122,12 +106,19 @@ export default function ConnexionPage() {
           Créer un compte
         </Link>
       </p>
-
       <p style={{ marginTop: 16, fontSize: 12, color: "var(--color-text-disabled)", textAlign: "center" }}>
         <Link href="/politique-confidentialite" style={{ color: "var(--color-text-tertiary)", textDecoration: "none" }}>
           Politique de confidentialité
         </Link>
       </p>
     </>
+  )
+}
+
+export default function ConnexionPage() {
+  return (
+    <Suspense>
+      <ConnexionForm />
+    </Suspense>
   )
 }

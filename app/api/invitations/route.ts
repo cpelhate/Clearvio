@@ -1,0 +1,114 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+import { sendInviteEmail } from '@/lib/mailer'
+import crypto from 'crypto'
+
+export async function POST(req: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
+  const member = await prisma.organizationMember.findFirst({
+    where: { userId: user.id },
+    include: { organization: true },
+  })
+  if (!member || member.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Accès refusé — rôle Admin requis' }, { status: 403 })
+  }
+
+  const body = await req.json()
+  const { email, message, orgRole, projectRole, allProjects, projectIds } = body
+
+  if (!email?.trim()) return NextResponse.json({ error: 'Email requis' }, { status: 400 })
+
+  // Vérifier que l'email n'est pas déjà membre
+  const existingMember = await prisma.organizationMember.findFirst({
+    where: { organizationId: member.organizationId },
+  })
+  // Note: on ne peut pas filtrer par email ici car on n'a que userId — on ignore ce check
+
+  // Annuler les invitations en attente pour cet email
+  await prisma.inviteToken.updateMany({
+    where: { organizationId: member.organizationId, email: email.trim(), usedAt: null },
+    data: { usedAt: new Date() },
+  })
+
+  const token = crypto.randomBytes(32).toString('hex')
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+
+  const invite = await prisma.inviteToken.create({
+    data: {
+      organizationId: member.organizationId,
+      email: email.trim(),
+      orgRole: orgRole ?? 'MEMBRE',
+      projectRole: projectRole ?? 'OBSERVATEUR',
+      allProjects: allProjects ?? false,
+      projectIds: projectIds ?? [],
+      message: message?.trim() || null,
+      createdBy: user.id,
+      token,
+      expiresAt,
+    },
+  })
+
+  // Construire l'URL d'invitation
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? `https://${req.headers.get('host')}`
+  const inviteUrl = `${appUrl}/invitation/${token}`
+
+  // Récupérer le nom de l'expéditeur
+  const fromName = user.user_metadata?.full_name ?? user.email ?? 'Un membre'
+
+  const emailResult = await sendInviteEmail({
+    organizationId: member.organizationId,
+    toEmail: email.trim(),
+    fromName,
+    orgName: member.organization.name,
+    message: message?.trim() || null,
+    inviteUrl,
+    expiresAt,
+  })
+
+  return NextResponse.json({
+    ok: true,
+    inviteUrl,
+    emailSent: emailResult.ok,
+    emailError: emailResult.error ?? null,
+  })
+}
+
+export async function GET(req: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
+  const member = await prisma.organizationMember.findFirst({
+    where: { userId: user.id },
+  })
+  if (!member || member.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+  }
+
+  const invites = await prisma.inviteToken.findMany({
+    where: { organizationId: member.organizationId, usedAt: null, expiresAt: { gt: new Date() } },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  return NextResponse.json(invites)
+}
+
+export async function DELETE(req: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
+  const member = await prisma.organizationMember.findFirst({ where: { userId: user.id } })
+  if (!member || member.role !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+
+  const { id } = await req.json()
+  await prisma.inviteToken.updateMany({
+    where: { id, organizationId: member.organizationId },
+    data: { usedAt: new Date() },
+  })
+  return NextResponse.json({ ok: true })
+}
