@@ -11,8 +11,14 @@ export async function POST() {
   const member = await prisma.organizationMember.findFirst({ where: { userId: user.id } })
   if (!member || member.role !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
 
-  const result = await sendTestEmail(member.organizationId, user.email!)
-  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 })
+  try {
+    const result = await sendTestEmail(member.organizationId, user.email!)
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[smtp test]', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 
   return NextResponse.json({ ok: true })
 }

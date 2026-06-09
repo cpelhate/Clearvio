@@ -47,21 +47,27 @@ export async function PATCH(req: NextRequest) {
     finalPassword = existing?.password ?? ''
   }
 
-  await prisma.smtpConfig.upsert({
-    where: { organizationId: member.organizationId },
-    create: {
-      organizationId: member.organizationId,
-      host, port: port ?? 587, secure: secure ?? false,
-      user: smtpUser, password: finalPassword,
-      fromEmail, fromName,
-    },
-    update: {
-      host, port: port ?? 587, secure: secure ?? false,
-      user: smtpUser,
-      ...(password ? { password } : {}),
-      fromEmail, fromName,
-    },
-  })
+  try {
+    await prisma.smtpConfig.upsert({
+      where: { organizationId: member.organizationId },
+      create: {
+        organizationId: member.organizationId,
+        host, port: port ?? 587, secure: secure ?? false,
+        user: smtpUser, password: finalPassword,
+        fromEmail, fromName,
+      },
+      update: {
+        host, port: port ?? 587, secure: secure ?? false,
+        user: smtpUser,
+        ...(password ? { password } : {}),
+        fromEmail, fromName,
+      },
+    })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[smtp PATCH]', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 
   return NextResponse.json({ ok: true })
 }
