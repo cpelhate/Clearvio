@@ -7,18 +7,24 @@ export async function GET() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-  const member = await prisma.organizationMember.findFirst({ where: { userId: user.id } })
-  if (!member || member.role !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+  try {
+    const member = await prisma.organizationMember.findFirst({ where: { userId: user.id } })
+    if (!member || member.role !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
 
-  const customRules = await prisma.permissionRule.findMany({ where: { organizationId: member.organizationId } })
-  const rulesMap: Record<string, Record<string, boolean>> = {}
-  for (const role of CONFIGURABLE_ROLES) {
-    rulesMap[role] = { ...DEFAULT_PERMISSIONS[role] }
+    const customRules = await prisma.permissionRule.findMany({ where: { organizationId: member.organizationId } })
+    const rulesMap: Record<string, Record<string, boolean>> = {}
+    for (const role of CONFIGURABLE_ROLES) {
+      rulesMap[role] = { ...DEFAULT_PERMISSIONS[role] }
+    }
+    for (const rule of customRules) {
+      if (rulesMap[rule.role]) rulesMap[rule.role][rule.action] = rule.allowed
+    }
+    return NextResponse.json(rulesMap)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[permissions GET]', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
-  for (const rule of customRules) {
-    if (rulesMap[rule.role]) rulesMap[rule.role][rule.action] = rule.allowed
-  }
-  return NextResponse.json(rulesMap)
 }
 
 export async function PATCH(req: NextRequest) {
