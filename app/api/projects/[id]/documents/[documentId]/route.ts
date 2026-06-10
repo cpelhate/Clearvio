@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { checkPermission, ACTIONS } from '@/lib/permissions'
 
 const BUCKET = 'documents-clearvio'
 
@@ -11,7 +12,11 @@ export async function DELETE(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-  const { documentId } = await params
+  const { id: projectId, documentId } = await params
+
+  const perm = await checkPermission(user.id, ACTIONS.DOCUMENT_DELETE, projectId)
+  if (!perm) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!perm.allowed) return NextResponse.json({ error: 'Permission refusée' }, { status: 403 })
 
   const doc = await prisma.projectDocument.findUnique({ where: { id: documentId } })
   if (!doc) return NextResponse.json({ error: 'Document introuvable' }, { status: 404 })
