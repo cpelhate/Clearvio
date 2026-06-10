@@ -3,19 +3,22 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { sendInviteEmail } from '@/lib/mailer'
 import crypto from 'crypto'
+import { checkPermission, ACTIONS } from '@/lib/permissions'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
+  const perm = await checkPermission(user.id, ACTIONS.MEMBER_INVITE)
+  if (!perm) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!perm.allowed) return NextResponse.json({ error: 'Permission refusée' }, { status: 403 })
+
   const member = await prisma.organizationMember.findFirst({
     where: { userId: user.id },
     include: { organization: true },
   })
-  if (!member || member.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Accès refusé — rôle Admin requis' }, { status: 403 })
-  }
+  if (!member) return NextResponse.json({ error: 'Organisation introuvable' }, { status: 404 })
 
   const body = await req.json()
   const { email, message, orgRole, projectRole, allProjects, projectIds } = body
@@ -106,12 +109,13 @@ export async function DELETE(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-  const member = await prisma.organizationMember.findFirst({ where: { userId: user.id } })
-  if (!member || member.role !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+  const perm = await checkPermission(user.id, ACTIONS.MEMBER_REMOVE)
+  if (!perm) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!perm.allowed) return NextResponse.json({ error: 'Permission refusée' }, { status: 403 })
 
   const { id } = await req.json()
   await prisma.inviteToken.updateMany({
-    where: { id, organizationId: member.organizationId },
+    where: { id, organizationId: perm.organizationId },
     data: { usedAt: new Date() },
   })
   return NextResponse.json({ ok: true })

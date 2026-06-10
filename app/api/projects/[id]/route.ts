@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { checkPermission, ACTIONS } from '@/lib/permissions'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -22,6 +23,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
+  const perm = await checkPermission(user.id, ACTIONS.PROJECT_EDIT, id)
+  if (!perm) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!perm.allowed) return NextResponse.json({ error: 'Permission refusée' }, { status: 403 })
 
   const body = await request.json()
 
@@ -47,6 +52,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
+  const perm = await checkPermission(user.id, ACTIONS.PROJECT_DELETE, id)
+  if (!perm) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!perm.allowed) return NextResponse.json({ error: 'Permission refusée' }, { status: 403 })
 
   await prisma.project.delete({ where: { id } })
   return NextResponse.json({ success: true })

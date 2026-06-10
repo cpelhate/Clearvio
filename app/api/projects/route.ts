@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { checkPermission, ACTIONS } from '@/lib/permissions'
 
 export async function GET() {
   const supabase = await createClient()
@@ -29,8 +30,9 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-  const member = await prisma.organizationMember.findFirst({ where: { userId: user.id } })
-  if (!member) return NextResponse.json({ error: 'Organisation introuvable' }, { status: 404 })
+  const perm = await checkPermission(user.id, ACTIONS.PROJECT_CREATE)
+  if (!perm) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  if (!perm.allowed) return NextResponse.json({ error: 'Permission refusée' }, { status: 403 })
 
   const body = await request.json()
   const { name, description, status, startDate, endDate, category, color } = body
@@ -39,7 +41,7 @@ export async function POST(request: NextRequest) {
 
   const project = await prisma.project.create({
     data: {
-      organizationId: member.organizationId,
+      organizationId: perm.organizationId,
       name: name.trim(),
       description: description?.trim() || null,
       status: status || 'INITIALISATION',

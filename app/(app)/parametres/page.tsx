@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Sun, Moon, Monitor, LogOut, Download, Trash2, User, Palette, ShieldCheck,
-  Mail, Users, UserPlus, Copy, CheckCheck, RefreshCw, Send, Eye, EyeOff,
+  Mail, Users, UserPlus, Copy, CheckCheck, RefreshCw, Send, Eye, EyeOff, Shield,
 } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { createClient } from '@/lib/supabase/client'
@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/toast'
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type Theme = 'light' | 'dark' | 'system'
-type Tab = 'general' | 'membres' | 'email'
+type Tab = 'general' | 'membres' | 'email' | 'droits'
 type OrgRole = 'ADMIN' | 'MEMBRE'
 type ProjectRole = 'CO_RESPONSABLE' | 'CONTRIBUTEUR' | 'OBSERVATEUR'
 
@@ -890,6 +890,279 @@ function EmailTab() {
   )
 }
 
+// ─── Tab: Droits ─────────────────────────────────────────────────────────────
+
+type PermissionsMatrix = Record<string, Record<string, boolean>>
+
+const ROLE_LABELS: Record<string, string> = {
+  ADMIN: 'Admin',
+  MEMBRE: 'Membre',
+  CO_RESPONSABLE: 'Co-responsable',
+  CONTRIBUTEUR: 'Contributeur',
+  OBSERVATEUR: 'Observateur',
+}
+
+const ALL_ROLES = ['ADMIN', 'MEMBRE', 'CO_RESPONSABLE', 'CONTRIBUTEUR', 'OBSERVATEUR']
+const CONFIGURABLE_ROLES = ['MEMBRE', 'CO_RESPONSABLE', 'CONTRIBUTEUR', 'OBSERVATEUR']
+
+const ACTION_GROUPS: { label: string; actions: { key: string; label: string }[] }[] = [
+  {
+    label: 'Projets',
+    actions: [
+      { key: 'project.create', label: 'Créer' },
+      { key: 'project.edit', label: 'Modifier' },
+      { key: 'project.delete', label: 'Supprimer' },
+    ],
+  },
+  {
+    label: 'Tâches',
+    actions: [
+      { key: 'task.create', label: 'Créer' },
+      { key: 'task.edit', label: 'Modifier' },
+      { key: 'task.delete', label: 'Supprimer' },
+    ],
+  },
+  {
+    label: 'Jalons',
+    actions: [
+      { key: 'milestone.create', label: 'Créer' },
+      { key: 'milestone.edit', label: 'Modifier' },
+      { key: 'milestone.delete', label: 'Supprimer' },
+    ],
+  },
+  {
+    label: 'Livrables',
+    actions: [
+      { key: 'deliverable.create', label: 'Créer' },
+      { key: 'deliverable.edit', label: 'Modifier' },
+      { key: 'deliverable.delete', label: 'Supprimer' },
+    ],
+  },
+  {
+    label: 'Objectifs',
+    actions: [
+      { key: 'objective.create', label: 'Créer' },
+      { key: 'objective.edit', label: 'Modifier' },
+      { key: 'objective.delete', label: 'Supprimer' },
+    ],
+  },
+  {
+    label: 'Risques',
+    actions: [
+      { key: 'risk.create', label: 'Créer' },
+      { key: 'risk.edit', label: 'Modifier' },
+      { key: 'risk.delete', label: 'Supprimer' },
+    ],
+  },
+  {
+    label: 'Documents',
+    actions: [
+      { key: 'document.upload', label: 'Téléverser' },
+      { key: 'document.delete', label: 'Supprimer' },
+    ],
+  },
+  {
+    label: 'Commentaires',
+    actions: [
+      { key: 'comment.create', label: 'Créer' },
+      { key: 'comment.delete_other', label: 'Supprimer (autre)' },
+    ],
+  },
+  {
+    label: 'Membres',
+    actions: [
+      { key: 'member.invite', label: 'Inviter' },
+      { key: 'member.remove', label: 'Retirer' },
+      { key: 'member.change_role', label: 'Modifier rôle' },
+    ],
+  },
+]
+
+function DroitsTab() {
+  const { toast } = useToast()
+  const [matrix, setMatrix] = useState<PermissionsMatrix | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/settings/permissions')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) setMatrix(data)
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handleToggle(role: string, action: string, currentValue: boolean) {
+    const newValue = !currentValue
+    // Optimistic update
+    setMatrix(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        [role]: { ...prev[role], [action]: newValue },
+      }
+    })
+
+    try {
+      const res = await fetch('/api/settings/permissions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, action, allowed: newValue }),
+      })
+      if (!res.ok) {
+        // Revert on error
+        setMatrix(prev => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            [role]: { ...prev[role], [action]: currentValue },
+          }
+        })
+        const data = await res.json().catch(() => ({}))
+        toast(data.error ?? 'Erreur lors de la mise à jour.', 'error')
+      } else {
+        toast('Permission mise à jour.', 'success')
+      }
+    } catch {
+      setMatrix(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          [role]: { ...prev[role], [action]: currentValue },
+        }
+      })
+      toast('Erreur réseau.', 'error')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div style={sectionStyle}>
+        <div style={sectionBodyStyle}>
+          <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>Chargement…</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!matrix) {
+    return (
+      <div style={sectionStyle}>
+        <div style={sectionBodyStyle}>
+          <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>
+            Impossible de charger les permissions. Vérifiez que vous êtes administrateur.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={sectionStyle}>
+      <div style={sectionHeaderStyle}>
+        <Shield size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-tertiary)' }} />
+        <div>
+          <h2 style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>
+            Droits par rôle
+          </h2>
+        </div>
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+              <th style={{
+                textAlign: 'left',
+                padding: '10px 20px',
+                fontSize: 11,
+                fontWeight: 600,
+                color: 'var(--color-text-tertiary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                minWidth: 160,
+              }}>
+                Action
+              </th>
+              {ALL_ROLES.map(role => (
+                <th key={role} style={{
+                  textAlign: 'center',
+                  padding: '10px 12px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: role === 'ADMIN' ? 'var(--color-text-tertiary)' : 'var(--color-text-secondary)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  whiteSpace: 'nowrap',
+                  minWidth: 100,
+                }}>
+                  {ROLE_LABELS[role]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {ACTION_GROUPS.map(group => (
+              <>
+                <tr key={`group-${group.label}`} style={{ background: 'var(--color-bg-elevated)' }}>
+                  <td
+                    colSpan={ALL_ROLES.length + 1}
+                    style={{
+                      padding: '8px 20px',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: 'var(--color-text-tertiary)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      borderBottom: '1px solid var(--color-border-subtle)',
+                      borderTop: '1px solid var(--color-border-subtle)',
+                    }}
+                  >
+                    {group.label}
+                  </td>
+                </tr>
+                {group.actions.map(action => (
+                  <tr
+                    key={action.key}
+                    style={{ borderBottom: '1px solid var(--color-border-subtle)' }}
+                  >
+                    <td style={{ padding: '10px 20px', color: 'var(--color-text-secondary)' }}>
+                      {action.label}
+                    </td>
+                    {/* Admin column — always checked, disabled */}
+                    <td style={{ textAlign: 'center', padding: '10px 12px' }}>
+                      <input
+                        type="checkbox"
+                        checked={true}
+                        disabled
+                        style={{ cursor: 'not-allowed', opacity: 0.4, width: 15, height: 15 }}
+                      />
+                    </td>
+                    {/* Configurable roles */}
+                    {CONFIGURABLE_ROLES.map(role => {
+                      const val = matrix[role]?.[action.key] ?? false
+                      return (
+                        <td key={role} style={{ textAlign: 'center', padding: '10px 12px' }}>
+                          <input
+                            type="checkbox"
+                            checked={val}
+                            onChange={() => handleToggle(role, action.key, val)}
+                            style={{ cursor: 'pointer', width: 15, height: 15 }}
+                          />
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ParametresPage() {
@@ -952,6 +1225,7 @@ export default function ParametresPage() {
     { key: 'general', label: 'Général', icon: <User size={14} strokeWidth={1.5} /> },
     { key: 'membres', label: 'Membres & Invitations', icon: <Users size={14} strokeWidth={1.5} /> },
     { key: 'email', label: 'Email', icon: <Mail size={14} strokeWidth={1.5} /> },
+    { key: 'droits', label: 'Droits', icon: <Shield size={14} strokeWidth={1.5} /> },
   ]
 
   return (
@@ -1143,6 +1417,11 @@ export default function ParametresPage() {
         {/* Tab: Email (SMTP) */}
         {activeTab === 'email' && (
           <EmailTab />
+        )}
+
+        {/* Tab: Droits */}
+        {activeTab === 'droits' && (
+          <DroitsTab />
         )}
 
       </div>
