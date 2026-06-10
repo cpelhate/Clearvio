@@ -897,9 +897,9 @@ type PermissionsMatrix = Record<string, Record<string, boolean>>
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: 'Admin',
   MEMBRE: 'Membre',
-  CO_RESPONSABLE: 'Co-responsable',
-  CONTRIBUTEUR: 'Contributeur',
-  OBSERVATEUR: 'Observateur',
+  CO_RESPONSABLE: 'Co-resp.',
+  CONTRIBUTEUR: 'Contrib.',
+  OBSERVATEUR: 'Observ.',
 }
 
 const ALL_ROLES = ['ADMIN', 'MEMBRE', 'CO_RESPONSABLE', 'CONTRIBUTEUR', 'OBSERVATEUR']
@@ -1068,8 +1068,8 @@ function DroitsTab() {
           </h2>
         </div>
       </div>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, tableLayout: 'fixed' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
               <th style={{
@@ -1080,21 +1080,19 @@ function DroitsTab() {
                 color: 'var(--color-text-tertiary)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.06em',
-                minWidth: 160,
+                width: '30%',
               }}>
                 Action
               </th>
               {ALL_ROLES.map(role => (
                 <th key={role} style={{
                   textAlign: 'center',
-                  padding: '10px 12px',
+                  padding: '10px 8px',
                   fontSize: 11,
                   fontWeight: 600,
                   color: role === 'ADMIN' ? 'var(--color-text-tertiary)' : 'var(--color-text-secondary)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.06em',
-                  whiteSpace: 'nowrap',
-                  minWidth: 100,
                 }}>
                   {ROLE_LABELS[role]}
                 </th>
