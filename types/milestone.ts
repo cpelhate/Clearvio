@@ -78,6 +78,7 @@ export interface Milestone {
   projectId: string
   typeId: string | null
   title: string
+  shortName: string | null
   description: string | null
   color: string | null
   icon: string | null

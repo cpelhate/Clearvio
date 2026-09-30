@@ -35,6 +35,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     data: {
       projectId,
       title: body.title.trim(),
+      shortName: body.shortName ? body.shortName.slice(0, 6) : null,
       description: body.description ?? null,
       plannedDate: new Date(body.plannedDate),
       status: body.status || 'A_VENIR',

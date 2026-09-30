@@ -255,22 +255,32 @@ export function CalendarView({ tasks, milestones }: CalendarViewProps) {
                     {date.getDate()}
                   </div>
 
-                  {/* Items preview */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {/* Items preview — compact badges */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
                     {dayMilestones.slice(0, MAX_SHOWN).map(m => (
-                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '1px 4px', borderRadius: 'var(--radius-sm)', background: 'var(--color-bg-tertiary)' }}>
-                        <Diamond size={8} strokeWidth={2} style={{ color: MILESTONE_STATUS_COLORS[m.status], flexShrink: 0 }} />
-                        <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</span>
-                      </div>
+                      <span key={m.id} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 3,
+                        padding: '2px 6px', borderRadius: 'var(--radius-full)',
+                        background: MILESTONE_STATUS_COLORS[m.status],
+                        color: '#fff', fontSize: 10, fontWeight: 600,
+                        letterSpacing: '0.01em', whiteSpace: 'nowrap',
+                      }}>
+                        ◇ {m.shortName ?? m.title.slice(0, 6)}
+                      </span>
                     ))}
                     {dayTasks.slice(0, Math.max(0, MAX_SHOWN - dayMilestones.length)).map(t => (
-                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '1px 4px', borderRadius: 'var(--radius-sm)', background: TASK_STATUS_BG[t.status] }}>
-                        <div style={{ width: 5, height: 5, borderRadius: '50%', background: TASK_STATUS_COLORS[t.status], flexShrink: 0 }} />
-                        <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-                      </div>
+                      <span key={t.id} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 3,
+                        padding: '2px 6px', borderRadius: 'var(--radius-full)',
+                        background: TASK_STATUS_COLORS[t.status],
+                        color: '#fff', fontSize: 10, fontWeight: 600,
+                        letterSpacing: '0.01em', whiteSpace: 'nowrap',
+                      }}>
+                        · {t.shortName ?? t.title.slice(0, 6)}
+                      </span>
                     ))}
                     {extraCount > 0 && (
-                      <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)', paddingLeft: 4 }}>+{extraCount} de plus</span>
+                      <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)', padding: '2px 4px' }}>+{extraCount}</span>
                     )}
                   </div>
                 </div>

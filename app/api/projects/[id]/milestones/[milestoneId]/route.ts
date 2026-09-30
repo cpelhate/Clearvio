@@ -18,6 +18,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     where: { id: milestoneId },
     data: {
       ...(body.title !== undefined && { title: body.title }),
+      ...(body.shortName !== undefined && { shortName: body.shortName ? body.shortName.slice(0, 6) : null }),
       ...(body.description !== undefined && { description: body.description }),
       ...(body.status !== undefined && { status: body.status }),
       ...(body.plannedDate !== undefined && { plannedDate: new Date(body.plannedDate) }),

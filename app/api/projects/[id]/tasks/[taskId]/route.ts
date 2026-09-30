@@ -19,6 +19,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     where: { id: taskId },
     data: {
       ...(body.title !== undefined && { title: body.title }),
+      ...(body.shortName !== undefined && { shortName: body.shortName ? body.shortName.slice(0, 6) : null }),
       ...(body.description !== undefined && { description: body.description }),
       ...(body.status !== undefined && { status: body.status }),
       ...(body.priority !== undefined && { priority: body.priority }),

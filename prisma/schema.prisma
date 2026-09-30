@@ -186,6 +186,7 @@ model Task {
   projectId   String
   parentId    String?
   title       String
+  shortName   String?      @map("short_name") @db.VarChar(6)
   description String?
   status      TaskStatus   @default(A_FAIRE)
   priority    TaskPriority @default(NORMALE)
@@ -274,6 +275,7 @@ model Milestone {
   projectId     String
   typeId        String?
   title         String
+  shortName     String?         @map("short_name") @db.VarChar(6)
   description   String?
   color         String?
   icon          String?

@@ -44,6 +44,7 @@ export interface Task {
   projectId: string
   parentId: string | null
   title: string
+  shortName: string | null
   description: string | null
   status: TaskStatus
   priority: TaskPriority

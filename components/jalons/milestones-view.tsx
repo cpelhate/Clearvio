@@ -18,12 +18,12 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
   const [milestoneTypes, setMilestoneTypes] = useState<MilestoneType[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ title: '', plannedDate: '', status: 'A_VENIR' as MilestoneStatus, typeId: '' })
+  const [form, setForm] = useState({ title: '', shortName: '', plannedDate: '', status: 'A_VENIR' as MilestoneStatus, typeId: '' })
   const [saving, setSaving] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editValues, setEditValues] = useState<{ title: string; plannedDate: string; typeId: string }>({ title: '', plannedDate: '', typeId: '' })
+  const [editValues, setEditValues] = useState<{ title: string; shortName: string; plannedDate: string; typeId: string }>({ title: '', shortName: '', plannedDate: '', typeId: '' })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -46,7 +46,7 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...form, typeId: form.typeId || undefined }),
     })
-    if (res.ok) { await load(); setShowForm(false); setForm({ title: '', plannedDate: '', status: 'A_VENIR', typeId: '' }) }
+    if (res.ok) { await load(); setShowForm(false); setForm({ title: '', shortName: '', plannedDate: '', status: 'A_VENIR', typeId: '' }) }
     setSaving(false)
   }
 
@@ -68,14 +68,14 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
 
   const startEdit = (m: Milestone) => {
     setEditingId(m.id)
-    setEditValues({ title: m.title, plannedDate: m.plannedDate ? m.plannedDate.split('T')[0] : '', typeId: m.typeId ?? '' })
+    setEditValues({ title: m.title, shortName: m.shortName ?? '', plannedDate: m.plannedDate ? m.plannedDate.split('T')[0] : '', typeId: m.typeId ?? '' })
   }
 
   const saveEdit = async (id: string) => {
     if (!editValues.title.trim()) { setEditingId(null); return }
     await fetch(`/api/projects/${projectId}/milestones/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: editValues.title, plannedDate: editValues.plannedDate || undefined, typeId: editValues.typeId || null }),
+      body: JSON.stringify({ title: editValues.title, shortName: editValues.shortName || null, plannedDate: editValues.plannedDate || undefined, typeId: editValues.typeId || null }),
     })
     setEditingId(null)
     await load()
@@ -126,7 +126,7 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
           background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-default)',
           borderRadius: 'var(--radius-lg)', padding: 20, marginBottom: 20,
         }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 12, alignItems: 'end' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px auto auto auto', gap: 12, alignItems: 'end' }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>Intitulé *</label>
               <input
@@ -134,6 +134,16 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
                 onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
                 placeholder="Ex : Validation maquettes" style={inputStyle}
                 onKeyDown={e => e.key === 'Enter' && handleCreate()}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>Nom court <span style={{ opacity: .6 }}>(6 car.)</span></label>
+              <input
+                value={form.shortName}
+                onChange={e => setForm(p => ({ ...p, shortName: e.target.value.slice(0, 6) }))}
+                placeholder="Ex : Val."
+                style={{ ...inputStyle, width: 100 }}
+                maxLength={6}
               />
             </div>
             <div>
@@ -207,6 +217,15 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
                       onChange={e => setEditValues(p => ({ ...p, title: e.target.value }))}
                       onKeyDown={e => { if (e.key === 'Enter') saveEdit(m.id); if (e.key === 'Escape') setEditingId(null) }}
                       style={{ flex: 1, height: 28, padding: '0 8px', fontSize: 14, border: '1px solid var(--color-accent-default)', borderRadius: 'var(--radius-sm)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none', fontFamily: 'var(--font-primary)' }}
+                    />
+                    <input
+                      value={editValues.shortName}
+                      onChange={e => setEditValues(p => ({ ...p, shortName: e.target.value.slice(0, 6) }))}
+                      onKeyDown={e => { if (e.key === 'Enter') saveEdit(m.id); if (e.key === 'Escape') setEditingId(null) }}
+                      maxLength={6}
+                      placeholder={m.title.slice(0, 6)}
+                      title="Nom court (6 car. max) — affiché dans le calendrier"
+                      style={{ width: 80, height: 28, padding: '0 8px', fontSize: 12, border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-sm)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none', fontFamily: 'var(--font-mono)' }}
                     />
                     <input
                       type="date"

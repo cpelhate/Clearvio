@@ -19,6 +19,7 @@ const PRIORITY_OPTIONS: TaskPriority[] = ['BASSE', 'NORMALE', 'HAUTE', 'CRITIQUE
 
 export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: TaskDrawerProps) {
   const [title, setTitle] = useState('')
+  const [shortName, setShortName] = useState('')
   const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -31,6 +32,7 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
   useEffect(() => {
     if (task) {
       setTitle(task.title)
+      setShortName(task.shortName || '')
       setDescription(task.description || '')
       setConfirmDelete(false)
     }
@@ -114,9 +116,25 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
             value={title}
             onChange={e => setTitle(e.target.value)}
             onBlur={() => title !== task.title && save('title', title)}
-            style={{ ...inputStyle, fontSize: 17, fontWeight: 500, border: 'none', padding: '4px 0', borderRadius: 0, background: 'transparent', marginBottom: 20 }}
+            style={{ ...inputStyle, fontSize: 17, fontWeight: 500, border: 'none', padding: '4px 0', borderRadius: 0, background: 'transparent', marginBottom: 8 }}
             placeholder="Titre de la tâche"
           />
+
+          {/* Nom court calendrier */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+            <label style={{ fontSize: 11, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
+              Nom court
+            </label>
+            <input
+              value={shortName}
+              onChange={e => setShortName(e.target.value.slice(0, 6))}
+              onBlur={() => shortName !== (task.shortName || '') && save('shortName', shortName || null)}
+              maxLength={6}
+              placeholder={task.title.slice(0, 6)}
+              style={{ ...inputStyle, width: 100, height: 28, padding: '0 8px', fontSize: 12, fontFamily: 'var(--font-mono)' }}
+            />
+            <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>Affiché dans le calendrier · 6 car. max</span>
+          </div>
 
           {/* Champs rapides */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
