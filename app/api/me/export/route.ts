@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 
 export async function GET() {
+  try {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
@@ -148,4 +149,8 @@ export async function GET() {
       'Content-Disposition': `attachment; filename="${filename}"`,
     },
   })
+  } catch (err) {
+    console.error('[export] Error:', err)
+    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
+  }
 }
