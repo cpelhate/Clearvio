@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Diamond, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Diamond, Trash2, ChevronDown, ChevronRight, Pencil, Check, X } from 'lucide-react'
 import { Milestone, MilestoneStatus, MILESTONE_STATUS_LABELS, MILESTONE_STATUS_COLORS, MILESTONE_STATUS_BG } from '@/types/milestone'
 
 function formatDate(d: string | null) {
@@ -190,7 +190,6 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
                       autoFocus
                       value={editValues.title}
                       onChange={e => setEditValues(p => ({ ...p, title: e.target.value }))}
-                      onBlur={() => saveEdit(m.id)}
                       onKeyDown={e => { if (e.key === 'Enter') saveEdit(m.id); if (e.key === 'Escape') setEditingId(null) }}
                       style={{ flex: 1, height: 28, padding: '0 8px', fontSize: 14, border: '1px solid var(--color-accent-default)', borderRadius: 'var(--radius-sm)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none', fontFamily: 'var(--font-primary)' }}
                     />
@@ -198,26 +197,30 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
                       type="date"
                       value={editValues.plannedDate}
                       onChange={e => setEditValues(p => ({ ...p, plannedDate: e.target.value }))}
-                      onBlur={() => saveEdit(m.id)}
                       onKeyDown={e => { if (e.key === 'Enter') saveEdit(m.id); if (e.key === 'Escape') setEditingId(null) }}
                       style={{ height: 28, padding: '0 8px', fontSize: 13, border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-sm)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none', fontFamily: 'var(--font-primary)', width: 150 }}
                     />
+                    <button onClick={() => saveEdit(m.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', color: 'var(--color-accent-default)', display: 'flex', alignItems: 'center' }}>
+                      <Check size={14} strokeWidth={1.5} />
+                    </button>
+                    <button onClick={() => setEditingId(null)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', color: 'var(--color-text-tertiary)', display: 'flex', alignItems: 'center' }}>
+                      <X size={14} strokeWidth={1.5} />
+                    </button>
                   </>
                 ) : (
                   <>
-                    <span
-                      onClick={() => startEdit(m)}
-                      title="Cliquer pour modifier"
-                      style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)', cursor: 'text' }}
-                    >
+                    <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>
                       {m.title}
                     </span>
-                    <span
-                      onClick={() => startEdit(m)}
-                      style={{ fontSize: 13, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', flexShrink: 0, cursor: 'text' }}
-                    >
+                    <span style={{ fontSize: 13, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
                       {formatDate(m.plannedDate)}
                     </span>
+                    <button onClick={() => startEdit(m)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', color: 'var(--color-text-tertiary)', display: 'flex', alignItems: 'center' }}>
+                      <Pencil size={14} strokeWidth={1.5} />
+                    </button>
                   </>
                 )}
 
