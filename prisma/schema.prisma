@@ -21,6 +21,7 @@ model Organization {
   invites         InviteToken[]
   smtpConfig      SmtpConfig?
   permissionRules PermissionRule[]
+  milestoneTypes  MilestoneType[]
 
   @@map("organizations")
 }
@@ -124,6 +125,8 @@ model Project {
 
   members        ProjectMember[]
   customFields   ProjectCustomField[]
+  depsAsSource   ProjectDependency[] @relation("SourceProject")
+  depsAsTarget   ProjectDependency[] @relation("TargetProject")
 
   @@map("projects")
 }
@@ -174,6 +177,8 @@ enum TaskPriority {
 enum DependencyType {
   FIN_DEBUT
   DEBUT_DEBUT
+  FIN_FIN
+  DEBUT_FIN
 }
 
 model Task {
@@ -206,6 +211,7 @@ model TaskDependency {
   dependentTaskId String
   blockingTaskId  String
   type            DependencyType @default(FIN_DEBUT)
+  lagDays         Int            @default(0)
 
   dependentTask   Task @relation("DependentTask", fields: [dependentTaskId], references: [id], onDelete: Cascade)
   blockingTask    Task @relation("BlockingTask", fields: [blockingTaskId], references: [id], onDelete: Cascade)
@@ -247,10 +253,30 @@ enum ObjectiveStatus {
   ABANDONNE
 }
 
+model MilestoneType {
+  id             String      @id @default(cuid())
+  organizationId String
+  name           String
+  color          String      @default("#6366f1")
+  icon           String      @default("milestone")
+  description    String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  milestones     Milestone[]
+
+  @@map("milestone_types")
+}
+
 model Milestone {
   id            String          @id @default(cuid())
   projectId     String
+  typeId        String?
   title         String
+  description   String?
+  color         String?
+  icon          String?
   plannedDate   DateTime
   actualDate    DateTime?
   status        MilestoneStatus @default(A_VENIR)
@@ -258,6 +284,7 @@ model Milestone {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
+  type          MilestoneType?  @relation(fields: [typeId], references: [id], onDelete: SetNull)
   deliverables  Deliverable[]
 
   @@map("milestones")
@@ -352,4 +379,45 @@ model PermissionRule {
 
   @@unique([organizationId, role, action])
   @@map("permission_rules")
+}
+
+enum DependableType {
+  TACHE
+  JALON
+  LIVRABLE
+}
+
+enum ProjectLinkType {
+  SUCCESSION
+  BLOQUE
+  LIE
+}
+
+model Dependency {
+  id         String         @id @default(cuid())
+  sourceType DependableType
+  sourceId   String
+  targetType DependableType
+  targetId   String
+  type       DependencyType @default(FIN_DEBUT)
+  lagDays    Int            @default(0)
+  createdAt  DateTime       @default(now())
+
+  @@unique([sourceType, sourceId, targetType, targetId])
+  @@map("dependencies")
+}
+
+model ProjectDependency {
+  id              String          @id @default(cuid())
+  sourceProjectId String
+  targetProjectId String
+  type            ProjectLinkType @default(SUCCESSION)
+  lagDays         Int             @default(0)
+  createdAt       DateTime        @default(now())
+
+  sourceProject   Project @relation("SourceProject", fields: [sourceProjectId], references: [id], onDelete: Cascade)
+  targetProject   Project @relation("TargetProject", fields: [targetProjectId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceProjectId, targetProjectId])
+  @@map("project_dependencies")
 }
