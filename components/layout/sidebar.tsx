@@ -19,20 +19,34 @@ import {
 import { Logo } from "@/components/logo"
 
 const navItems = [
-  { href: "/tableau-de-bord", label: "Tableau de bord", icon: LayoutDashboard },
-  { href: "/projets", label: "Projets", icon: FolderKanban },
-  { href: "/portefeuille", label: "Portefeuille", icon: Briefcase },
-  { href: "/roadmap", label: "Roadmap", icon: Route },
+  { href: "/tableau-de-bord", label: "Tableau de bord", icon: LayoutDashboard, navAction: '' },
+  { href: "/projets", label: "Projets", icon: FolderKanban, navAction: '' },
+  { href: "/portefeuille", label: "Portefeuille", icon: Briefcase, navAction: 'nav.portefeuille' },
+  { href: "/roadmap", label: "Roadmap", icon: Route, navAction: 'nav.roadmap' },
 ]
 
 const bottomItems = [
-  { href: "/notifications", label: "Notifications", icon: Bell },
-  { href: "/parametres", label: "Paramètres", icon: Settings2 },
+  { href: "/notifications", label: "Notifications", icon: Bell, navAction: 'nav.notifications' },
+  { href: "/parametres", label: "Paramètres", icon: Settings2, navAction: '' },
 ]
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
+  const [navVisibility, setNavVisibility] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    fetch('/api/me/nav')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setNavVisibility(data) })
+      .catch(() => {})
+  }, [])
+
+  const isNavVisible = (action: string) => {
+    if (!action) return true
+    if (!(action in navVisibility)) return true
+    return navVisibility[action]
+  }
 
   return (
     <aside
@@ -72,7 +86,7 @@ export function Sidebar() {
             Navigation
           </p>
         )}
-        {navItems.map((item) => {
+        {navItems.filter(item => isNavVisible(item.navAction)).map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
           const Icon = item.icon
           return (
@@ -108,7 +122,7 @@ export function Sidebar() {
 
       {/* Footer */}
       <div style={{ padding: "8px 8px", borderTop: "1px solid var(--color-border-subtle)" }}>
-        {bottomItems.map((item) => {
+        {bottomItems.filter(item => isNavVisible(item.navAction)).map((item) => {
           const isActive = pathname === item.href
           const Icon = item.icon
           return (

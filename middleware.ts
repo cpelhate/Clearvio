@@ -10,6 +10,8 @@ export async function middleware(request: NextRequest) {
     const isAppRoute = url.pathname.startsWith('/tableau-de-bord') ||
                        url.pathname.startsWith('/projets') ||
                        url.pathname.startsWith('/portefeuille') ||
+                       url.pathname.startsWith('/roadmap') ||
+                       url.pathname.startsWith('/notifications') ||
                        url.pathname.startsWith('/parametres')
 
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {

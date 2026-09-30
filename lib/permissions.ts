@@ -26,9 +26,14 @@ export const ACTIONS = {
   MEMBER_INVITE: 'member.invite',
   MEMBER_REMOVE: 'member.remove',
   MEMBER_CHANGE_ROLE: 'member.change_role',
+  NAV_PORTEFEUILLE: 'nav.portefeuille',
+  NAV_ROADMAP: 'nav.roadmap',
+  NAV_NOTIFICATIONS: 'nav.notifications',
 } as const
 
 export type Action = typeof ACTIONS[keyof typeof ACTIONS]
+
+export const NAV_ACTIONS = ['nav.portefeuille', 'nav.roadmap', 'nav.notifications'] as const
 
 export const CONFIGURABLE_ROLES = ['MEMBRE', 'CO_RESPONSABLE', 'CONTRIBUTEUR', 'OBSERVATEUR'] as const
 
@@ -43,6 +48,7 @@ export const DEFAULT_PERMISSIONS: Record<string, Record<string, boolean>> = {
     'document.upload': true, 'document.delete': true,
     'comment.create': true, 'comment.delete_other': false,
     'member.invite': false, 'member.remove': false, 'member.change_role': false,
+    'nav.portefeuille': false, 'nav.roadmap': false, 'nav.notifications': true,
   },
   CO_RESPONSABLE: {
     'project.create': false, 'project.edit': true, 'project.delete': false,
@@ -54,6 +60,7 @@ export const DEFAULT_PERMISSIONS: Record<string, Record<string, boolean>> = {
     'document.upload': true, 'document.delete': true,
     'comment.create': true, 'comment.delete_other': true,
     'member.invite': false, 'member.remove': false, 'member.change_role': false,
+    'nav.portefeuille': true, 'nav.roadmap': true, 'nav.notifications': true,
   },
   CONTRIBUTEUR: {
     'project.create': false, 'project.edit': false, 'project.delete': false,
@@ -65,6 +72,7 @@ export const DEFAULT_PERMISSIONS: Record<string, Record<string, boolean>> = {
     'document.upload': true, 'document.delete': false,
     'comment.create': true, 'comment.delete_other': false,
     'member.invite': false, 'member.remove': false, 'member.change_role': false,
+    'nav.portefeuille': true, 'nav.roadmap': true, 'nav.notifications': true,
   },
   OBSERVATEUR: {
     'project.create': false, 'project.edit': false, 'project.delete': false,
@@ -76,6 +84,7 @@ export const DEFAULT_PERMISSIONS: Record<string, Record<string, boolean>> = {
     'document.upload': false, 'document.delete': false,
     'comment.create': true, 'comment.delete_other': false,
     'member.invite': false, 'member.remove': false, 'member.change_role': false,
+    'nav.portefeuille': false, 'nav.roadmap': false, 'nav.notifications': true,
   },
 }
 

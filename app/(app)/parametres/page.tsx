@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Sun, Moon, Monitor, LogOut, Download, Trash2, User, Palette, ShieldCheck,
-  Mail, Users, UserPlus, Copy, CheckCheck, RefreshCw, Send, Eye, EyeOff, Shield,
+  Mail, Users, UserPlus, Copy, CheckCheck, RefreshCw, Send, Eye, EyeOff, Shield, Navigation,
 } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { createClient } from '@/lib/supabase/client'
@@ -890,6 +890,46 @@ function EmailTab() {
   )
 }
 
+// ─── Toggle Switch component ──────────────────────────────────────────────────
+
+function ToggleSwitch({ checked, onChange, disabled }: { checked: boolean; onChange?: () => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={onChange}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        width: 32,
+        height: 18,
+        borderRadius: 9,
+        background: checked ? 'var(--color-accent-default)' : 'var(--color-border-default)',
+        border: 'none',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.4 : 1,
+        position: 'relative',
+        transition: 'background 150ms',
+        flexShrink: 0,
+        padding: 0,
+      }}
+    >
+      <span style={{
+        position: 'absolute',
+        left: checked ? 16 : 2,
+        width: 14,
+        height: 14,
+        borderRadius: '50%',
+        background: 'white',
+        boxShadow: '0 1px 3px rgba(0,0,0,.2)',
+        transition: 'left 150ms',
+      }} />
+    </button>
+  )
+}
+
 // ─── Tab: Droits ─────────────────────────────────────────────────────────────
 
 type PermissionsMatrix = Record<string, Record<string, boolean>>
@@ -904,6 +944,12 @@ const ROLE_LABELS: Record<string, string> = {
 
 const ALL_ROLES = ['ADMIN', 'MEMBRE', 'CO_RESPONSABLE', 'CONTRIBUTEUR', 'OBSERVATEUR']
 const CONFIGURABLE_ROLES = ['MEMBRE', 'CO_RESPONSABLE', 'CONTRIBUTEUR', 'OBSERVATEUR']
+
+const NAV_MODULES: { key: string; label: string; description: string }[] = [
+  { key: 'nav.portefeuille', label: 'Portefeuille', description: 'Vue multi-projets' },
+  { key: 'nav.roadmap', label: 'Roadmap', description: 'Planning global' },
+  { key: 'nav.notifications', label: 'Notifications', description: 'Centre de notifications' },
+]
 
 const ACTION_GROUPS: { label: string; actions: { key: string; label: string }[] }[] = [
   {
@@ -1059,17 +1105,73 @@ function DroitsTab() {
   }
 
   return (
-    <div style={sectionStyle}>
-      <div style={sectionHeaderStyle}>
-        <Shield size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-tertiary)' }} />
-        <div>
-          <h2 style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>
-            Droits par rôle
-          </h2>
+    <div>
+      {/* Section Accès aux modules */}
+      <div style={{ ...sectionStyle, marginBottom: 16 }}>
+        <div style={sectionHeaderStyle}>
+          <Navigation size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-tertiary)' }} />
+          <h2 style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>Accès aux modules</h2>
+          <span style={{
+            marginLeft: 'auto',
+            fontSize: 10, fontWeight: 600,
+            padding: '2px 8px',
+            background: 'var(--color-accent-bg)',
+            color: 'var(--color-accent-default)',
+            border: '1px solid var(--color-accent-default)',
+            borderRadius: 'var(--radius-sm)',
+            textTransform: 'uppercase' as const,
+            letterSpacing: '0.06em',
+          }}>Navigation</span>
         </div>
-      </div>
-      <div>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, tableLayout: 'fixed' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+              <th style={{ textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 600, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', width: '30%' }}>
+                Module
+              </th>
+              {ALL_ROLES.map(role => (
+                <th key={role} style={{ textAlign: 'center', padding: '10px 8px', fontSize: 11, fontWeight: 600, color: role === 'ADMIN' ? 'var(--color-text-tertiary)' : 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  {ROLE_LABELS[role]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {NAV_MODULES.map(mod => (
+              <tr key={mod.key} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+                <td style={{ padding: '10px 20px' }}>
+                  <span style={{ color: 'var(--color-text-primary)', fontSize: 13 }}>{mod.label}</span>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary)' }}>{mod.description}</span>
+                </td>
+                <td style={{ textAlign: 'center', padding: '10px 12px' }}>
+                  <ToggleSwitch checked={true} disabled />
+                </td>
+                {CONFIGURABLE_ROLES.map(role => {
+                  const val = matrix[role]?.[mod.key] ?? true
+                  return (
+                    <td key={role} style={{ textAlign: 'center', padding: '10px 12px' }}>
+                      <ToggleSwitch checked={val} onChange={() => handleToggle(role, mod.key, val)} />
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Section Droits par rôle */}
+      <div style={sectionStyle}>
+        <div style={sectionHeaderStyle}>
+          <Shield size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-tertiary)' }} />
+          <div>
+            <h2 style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>
+              Droits par rôle
+            </h2>
+          </div>
+        </div>
+        <div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, tableLayout: 'fixed' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
               <th style={{
@@ -1156,6 +1258,7 @@ function DroitsTab() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )
