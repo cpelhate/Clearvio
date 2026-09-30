@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Diamond, Trash2, ChevronDown, ChevronRight, Pencil, Check, X } from 'lucide-react'
-import { Milestone, MilestoneStatus, MILESTONE_STATUS_LABELS, MILESTONE_STATUS_COLORS, MILESTONE_STATUS_BG } from '@/types/milestone'
+import { Milestone, MilestoneType, MilestoneStatus, MILESTONE_STATUS_LABELS, MILESTONE_STATUS_COLORS, MILESTONE_STATUS_BG } from '@/types/milestone'
 
 function formatDate(d: string | null) {
   if (!d) return '—'
@@ -15,19 +15,24 @@ interface MilestonesViewProps { projectId: string }
 
 export function MilestonesView({ projectId }: MilestonesViewProps) {
   const [milestones, setMilestones] = useState<Milestone[]>([])
+  const [milestoneTypes, setMilestoneTypes] = useState<MilestoneType[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ title: '', plannedDate: '', status: 'A_VENIR' as MilestoneStatus })
+  const [form, setForm] = useState({ title: '', plannedDate: '', status: 'A_VENIR' as MilestoneStatus, typeId: '' })
   const [saving, setSaving] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editValues, setEditValues] = useState<{ title: string; plannedDate: string }>({ title: '', plannedDate: '' })
+  const [editValues, setEditValues] = useState<{ title: string; plannedDate: string; typeId: string }>({ title: '', plannedDate: '', typeId: '' })
 
   const load = useCallback(async () => {
     setLoading(true)
-    const res = await fetch(`/api/projects/${projectId}/milestones`)
-    if (res.ok) setMilestones(await res.json())
+    const [msRes, typesRes] = await Promise.all([
+      fetch(`/api/projects/${projectId}/milestones`),
+      fetch('/api/settings/milestone-types'),
+    ])
+    if (msRes.ok) setMilestones(await msRes.json())
+    if (typesRes.ok) setMilestoneTypes(await typesRes.json())
     setLoading(false)
   }, [projectId])
 
@@ -39,9 +44,9 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
     const res = await fetch(`/api/projects/${projectId}/milestones`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, typeId: form.typeId || undefined }),
     })
-    if (res.ok) { await load(); setShowForm(false); setForm({ title: '', plannedDate: '', status: 'A_VENIR' }) }
+    if (res.ok) { await load(); setShowForm(false); setForm({ title: '', plannedDate: '', status: 'A_VENIR', typeId: '' }) }
     setSaving(false)
   }
 
@@ -63,14 +68,14 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
 
   const startEdit = (m: Milestone) => {
     setEditingId(m.id)
-    setEditValues({ title: m.title, plannedDate: m.plannedDate ? m.plannedDate.split('T')[0] : '' })
+    setEditValues({ title: m.title, plannedDate: m.plannedDate ? m.plannedDate.split('T')[0] : '', typeId: m.typeId ?? '' })
   }
 
   const saveEdit = async (id: string) => {
     if (!editValues.title.trim()) { setEditingId(null); return }
     await fetch(`/api/projects/${projectId}/milestones/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: editValues.title, plannedDate: editValues.plannedDate || undefined }),
+      body: JSON.stringify({ title: editValues.title, plannedDate: editValues.plannedDate || undefined, typeId: editValues.typeId || null }),
     })
     setEditingId(null)
     await load()
@@ -121,7 +126,7 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
           background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-default)',
           borderRadius: 'var(--radius-lg)', padding: 20, marginBottom: 20,
         }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, alignItems: 'end' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 12, alignItems: 'end' }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>Intitulé *</label>
               <input
@@ -137,6 +142,16 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
                 onChange={e => setForm(p => ({ ...p, plannedDate: e.target.value }))}
                 style={{ ...inputStyle, width: 160 }} />
             </div>
+            {milestoneTypes.length > 0 && (
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>Type</label>
+                <select value={form.typeId} onChange={e => setForm(p => ({ ...p, typeId: e.target.value }))}
+                  style={{ ...inputStyle, width: 140 }}>
+                  <option value="">— Aucun —</option>
+                  {milestoneTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+            )}
             <div>
               <label style={{ display: 'block', fontSize: 12, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>Statut</label>
               <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value as MilestoneStatus }))}
@@ -200,6 +215,16 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
                       onKeyDown={e => { if (e.key === 'Enter') saveEdit(m.id); if (e.key === 'Escape') setEditingId(null) }}
                       style={{ height: 28, padding: '0 8px', fontSize: 13, border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-sm)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none', fontFamily: 'var(--font-primary)', width: 150 }}
                     />
+                    {milestoneTypes.length > 0 && (
+                      <select
+                        value={editValues.typeId}
+                        onChange={e => setEditValues(p => ({ ...p, typeId: e.target.value }))}
+                        style={{ height: 28, padding: '0 8px', fontSize: 12, border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-sm)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', outline: 'none', width: 130 }}
+                      >
+                        <option value="">— Aucun —</option>
+                        {milestoneTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                    )}
                     <button onClick={() => saveEdit(m.id)}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', color: 'var(--color-accent-default)', display: 'flex', alignItems: 'center' }}>
                       <Check size={14} strokeWidth={1.5} />
@@ -214,6 +239,18 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
                     <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>
                       {m.title}
                     </span>
+                    {m.type && (
+                      <span style={{
+                        fontSize: 11, fontWeight: 500, padding: '2px 8px',
+                        borderRadius: 'var(--radius-full)',
+                        background: `${m.type.color}22`,
+                        color: m.type.color,
+                        border: `1px solid ${m.type.color}44`,
+                        flexShrink: 0,
+                      }}>
+                        {m.type.name}
+                      </span>
+                    )}
                     <span style={{ fontSize: 13, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
                       {formatDate(m.plannedDate)}
                     </span>

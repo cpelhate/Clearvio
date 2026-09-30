@@ -62,16 +62,32 @@ export const OBJECTIVE_STATUS_BG: Record<ObjectiveStatus, string> = {
   ABANDONNE: 'var(--color-bg-tertiary)',
 }
 
+export interface MilestoneType {
+  id: string
+  organizationId: string
+  name: string
+  color: string
+  icon: string
+  description: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Milestone {
   id: string
   projectId: string
+  typeId: string | null
   title: string
+  description: string | null
+  color: string | null
+  icon: string | null
   plannedDate: string
   actualDate: string | null
   status: MilestoneStatus
   showOnGantt: boolean
   createdAt: string
   updatedAt: string
+  type?: MilestoneType | null
   deliverables?: Deliverable[]
 }
 
