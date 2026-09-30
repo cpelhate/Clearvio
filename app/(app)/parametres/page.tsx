@@ -1275,6 +1275,7 @@ export default function ParametresPage() {
   const [theme, setTheme] = useState<Theme>('system')
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('theme') as Theme | null
@@ -1303,8 +1304,28 @@ export default function ParametresPage() {
     applyTheme(next)
   }
 
-  function handleExport() {
-    toast('Fonctionnalité disponible prochainement', 'info')
+  async function handleExport() {
+    setExporting(true)
+    try {
+      const res = await fetch('/api/me/export')
+      if (!res.ok) {
+        toast('Erreur lors de la génération de l\'export.', 'error')
+        return
+      }
+      const blob = await res.blob()
+      const filename = `clearvio-export-${new Date().toISOString().slice(0, 10)}.json`
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(url)
+      toast('Export téléchargé avec succès.', 'success')
+    } catch {
+      toast('Erreur réseau lors de l\'export.', 'error')
+    } finally {
+      setExporting(false)
+    }
   }
 
   function handleDeleteAccount() {
@@ -1475,18 +1496,20 @@ export default function ParametresPage() {
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <button
                     onClick={handleExport}
+                    disabled={exporting}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 8,
                       height: 36, padding: '0 16px',
                       background: 'transparent',
                       border: '1px solid var(--color-border-default)',
                       borderRadius: 'var(--radius-md)',
-                      fontSize: 14, cursor: 'pointer',
+                      fontSize: 14, cursor: exporting ? 'not-allowed' : 'pointer',
                       color: 'var(--color-text-secondary)',
+                      opacity: exporting ? 0.6 : 1,
                     }}
                   >
                     <Download size={15} strokeWidth={1.5} />
-                    Exporter mes données
+                    {exporting ? 'Génération en cours…' : 'Exporter mes données'}
                   </button>
                   <button
                     onClick={handleDeleteAccount}
