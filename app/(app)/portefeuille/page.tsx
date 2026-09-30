@@ -8,6 +8,7 @@ import {
   FolderKanban, TrendingUp, AlertTriangle, Clock, BarChart3,
   Users, AlertCircle, Briefcase,
 } from 'lucide-react'
+import { InterProjectDepsSection } from '@/components/dependencies/inter-project-deps-section'
 import type { ProjectStatus } from '@/types/project'
 import { PROJECT_STATUS_LABELS, PROJECT_STATUS_COLORS } from '@/types/project'
 import type { RiskLevel } from '@/types/risk'
@@ -455,7 +456,12 @@ export default function PortefeuillePage() {
           )}
         </div>
 
-        {/* Section 4 — Alertes actives */}
+        {/* Section 4 — Liens entre projets */}
+        <div style={{ marginBottom: 24 }}>
+          <InterProjectDepsSection defaultCollapsed={false} />
+        </div>
+
+        {/* Section 5 — Alertes actives */}
         {!loading && data && (data.summary.lateCount > 0 || data.summary.criticalRiskCount > 0) && (
           <div style={{
             background: 'var(--color-bg-secondary)',

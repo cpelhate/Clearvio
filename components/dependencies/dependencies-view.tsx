@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Trash2, AlertTriangle, Info, Link2 } from 'lucide-react'
+import { InterProjectDepsSection } from './inter-project-deps-section'
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -588,6 +589,12 @@ export function DependenciesView({ projectId }: { projectId: string }) {
           </p>
         </>
       )}
+
+      {/* Divider */}
+      <div style={{ borderTop: '1px solid var(--color-border-subtle)', margin: '28px 0 24px' }} />
+
+      {/* Inter-project dependencies */}
+      <InterProjectDepsSection currentProjectId={projectId} defaultCollapsed={false} />
 
       {showModal && (
         <CreateModal

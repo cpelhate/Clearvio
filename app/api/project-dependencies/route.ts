@@ -26,8 +26,8 @@ export async function GET() {
       ],
     },
     include: {
-      sourceProject: { select: { id: true, name: true, status: true } },
-      targetProject: { select: { id: true, name: true, status: true } },
+      sourceProject: { select: { id: true, name: true, status: true, color: true } },
+      targetProject: { select: { id: true, name: true, status: true, color: true } },
     },
     orderBy: { createdAt: 'asc' },
   })
