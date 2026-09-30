@@ -14,5 +14,5 @@ export async function GET() {
 
   if (!membership) return NextResponse.json({ orgName: null })
 
-  return NextResponse.json({ orgName: membership.organization.name })
+  return NextResponse.json({ orgName: membership.organization.name, role: membership.role })
 }

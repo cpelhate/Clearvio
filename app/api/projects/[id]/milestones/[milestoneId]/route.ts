@@ -18,11 +18,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     where: { id: milestoneId },
     data: {
       ...(body.title !== undefined && { title: body.title }),
+      ...(body.description !== undefined && { description: body.description }),
       ...(body.status !== undefined && { status: body.status }),
       ...(body.plannedDate !== undefined && { plannedDate: new Date(body.plannedDate) }),
       ...(body.actualDate !== undefined && { actualDate: body.actualDate ? new Date(body.actualDate) : null }),
       ...(body.showOnGantt !== undefined && { showOnGantt: body.showOnGantt }),
+      ...(body.color !== undefined && { color: body.color }),
+      ...(body.icon !== undefined && { icon: body.icon }),
+      ...(body.typeId !== undefined && { typeId: body.typeId }),
     },
+    include: { type: true },
   })
   return NextResponse.json(milestone)
 }

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Sun, Moon, Monitor, LogOut, Download, Trash2, User, Palette, ShieldCheck,
-  Mail, Users, UserPlus, Copy, CheckCheck, RefreshCw, Send, Eye, EyeOff, Shield, Navigation,
+  Mail, Users, UserPlus, Copy, CheckCheck, RefreshCw, Send, Eye, EyeOff, Shield, Navigation, Flag, Plus, Pencil, X,
 } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { createClient } from '@/lib/supabase/client'
@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/toast'
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type Theme = 'light' | 'dark' | 'system'
-type Tab = 'general' | 'membres' | 'email' | 'droits'
+type Tab = 'general' | 'membres' | 'email' | 'droits' | 'jalons'
 type OrgRole = 'ADMIN' | 'MEMBRE'
 type ProjectRole = 'CO_RESPONSABLE' | 'CONTRIBUTEUR' | 'OBSERVATEUR'
 
@@ -1264,6 +1264,232 @@ function DroitsTab() {
   )
 }
 
+// ─── JalonsTab ────────────────────────────────────────────────────────────────
+
+interface MilestoneType {
+  id: string
+  name: string
+  color: string
+  icon: string
+  description?: string | null
+}
+
+const MILESTONE_ICONS = [
+  { value: 'flag', label: 'Drapeau' },
+  { value: 'milestone', label: 'Jalon' },
+  { value: 'star', label: 'Étoile' },
+  { value: 'check', label: 'Validation' },
+  { value: 'alert', label: 'Alerte' },
+  { value: 'diamond', label: 'Diamant' },
+]
+
+function JalonsTab() {
+  const { toast } = useToast()
+  const [types, setTypes] = useState<MilestoneType[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [form, setForm] = useState({ name: '', color: '#6366f1', icon: 'flag', description: '' })
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/settings/milestone-types')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { setTypes(data); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [])
+
+  function startEdit(t: MilestoneType) {
+    setEditId(t.id)
+    setForm({ name: t.name, color: t.color, icon: t.icon, description: t.description ?? '' })
+    setShowForm(true)
+  }
+
+  function startCreate() {
+    setEditId(null)
+    setForm({ name: '', color: '#6366f1', icon: 'flag', description: '' })
+    setShowForm(true)
+  }
+
+  async function handleSave() {
+    if (!form.name.trim()) { toast('Nom requis', 'error'); return }
+    setSaving(true)
+    try {
+      const url = editId ? `/api/settings/milestone-types/${editId}` : '/api/settings/milestone-types'
+      const method = editId ? 'PATCH' : 'POST'
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) { toast('Erreur lors de la sauvegarde', 'error'); return }
+      const saved = await res.json()
+      if (editId) {
+        setTypes(prev => prev.map(t => t.id === editId ? saved : t))
+        toast('Type de jalon mis à jour', 'success')
+      } else {
+        setTypes(prev => [...prev, saved])
+        toast('Type de jalon créé', 'success')
+      }
+      setShowForm(false)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    const res = await fetch(`/api/settings/milestone-types/${id}`, { method: 'DELETE' })
+    if (res.ok) {
+      setTypes(prev => prev.filter(t => t.id !== id))
+      toast('Type supprimé', 'success')
+    } else {
+      toast('Erreur lors de la suppression', 'error')
+    }
+  }
+
+  return (
+    <div>
+      <div style={sectionStyle}>
+        <div style={{ ...sectionHeaderStyle, justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Flag size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-tertiary)' }} />
+            <h2 style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>Types de jalons</h2>
+          </div>
+          <button onClick={startCreate} style={btnPrimaryStyle}>
+            <Plus size={14} strokeWidth={1.5} />
+            Nouveau type
+          </button>
+        </div>
+        <div style={sectionBodyStyle}>
+          <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)', marginBottom: 16 }}>
+            Définissez des types de jalons personnalisés pour votre organisation (ex. : Décision Go/NoGo, Livraison client, Point de contrôle).
+          </p>
+
+          {loading && <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>Chargement…</p>}
+
+          {!loading && types.length === 0 && !showForm && (
+            <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>
+              Aucun type de jalon personnalisé. Créez-en un pour commencer.
+            </p>
+          )}
+
+          {types.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: showForm ? 20 : 0 }}>
+              {types.map(t => (
+                <div key={t.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '10px 14px',
+                  background: 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-border-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                }}>
+                  <div style={{
+                    width: 12, height: 12, borderRadius: '50%',
+                    background: t.color, flexShrink: 0,
+                  }} />
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>{t.name}</p>
+                    {t.description && (
+                      <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>{t.description}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => startEdit(t)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)', padding: 4 }}
+                  >
+                    <Pencil size={14} strokeWidth={1.5} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(t.id)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-danger-default)', padding: 4 }}
+                  >
+                    <Trash2 size={14} strokeWidth={1.5} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {showForm && (
+            <div style={{
+              padding: 16,
+              background: 'var(--color-bg-elevated)',
+              border: '1px solid var(--color-border-default)',
+              borderRadius: 'var(--radius-md)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)' }}>
+                  {editId ? 'Modifier le type' : 'Nouveau type de jalon'}
+                </p>
+                <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)' }}>
+                  <X size={16} strokeWidth={1.5} />
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Nom *</label>
+                  <input
+                    style={inputStyle}
+                    value={form.name}
+                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="ex. Décision Go/NoGo"
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Description</label>
+                  <input
+                    style={inputStyle}
+                    value={form.description}
+                    onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                    placeholder="Description optionnelle"
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>Couleur</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        type="color"
+                        value={form.color}
+                        onChange={e => setForm(f => ({ ...f, color: e.target.value }))}
+                        style={{ width: 36, height: 36, border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', cursor: 'pointer', padding: 2 }}
+                      />
+                      <input
+                        style={{ ...inputStyle, width: 100 }}
+                        value={form.color}
+                        onChange={e => setForm(f => ({ ...f, color: e.target.value }))}
+                        placeholder="#6366f1"
+                      />
+                    </div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>Icône</label>
+                    <select
+                      style={selectStyle}
+                      value={form.icon}
+                      onChange={e => setForm(f => ({ ...f, icon: e.target.value }))}
+                    >
+                      {MILESTONE_ICONS.map(ic => (
+                        <option key={ic.value} value={ic.value}>{ic.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button onClick={() => setShowForm(false)} style={btnSecondaryStyle}>Annuler</button>
+                  <button onClick={handleSave} disabled={saving} style={btnPrimaryStyle}>
+                    {saving ? 'Sauvegarde…' : editId ? 'Mettre à jour' : 'Créer'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ParametresPage() {
@@ -1276,6 +1502,7 @@ export default function ParametresPage() {
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('theme') as Theme | null
@@ -1288,6 +1515,7 @@ export default function ParametresPage() {
         setCurrentUserId(data.user.id)
         fetch('/api/me/org').then(r => r.ok ? r.json() : null).then(d => {
           if (d?.orgName) setOrgName(d.orgName)
+          if (d?.role === 'ADMIN') setIsAdmin(true)
         })
       }
     })
@@ -1348,6 +1576,7 @@ export default function ParametresPage() {
     { key: 'membres', label: 'Membres & Invitations', icon: <Users size={14} strokeWidth={1.5} /> },
     { key: 'email', label: 'Email', icon: <Mail size={14} strokeWidth={1.5} /> },
     { key: 'droits', label: 'Droits', icon: <Shield size={14} strokeWidth={1.5} /> },
+    { key: 'jalons', label: 'Jalons', icon: <Flag size={14} strokeWidth={1.5} /> },
   ]
 
   return (
@@ -1546,6 +1775,16 @@ export default function ParametresPage() {
         {/* Tab: Droits */}
         {activeTab === 'droits' && (
           <DroitsTab />
+        )}
+
+        {/* Tab: Jalons */}
+        {activeTab === 'jalons' && isAdmin && (
+          <JalonsTab />
+        )}
+        {activeTab === 'jalons' && !isAdmin && (
+          <div style={{ color: 'var(--color-text-tertiary)', fontSize: 14, padding: 20 }}>
+            Seuls les administrateurs peuvent gérer les types de jalons.
+          </div>
         )}
 
       </div>

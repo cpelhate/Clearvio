@@ -11,7 +11,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const milestones = await prisma.milestone.findMany({
     where: { projectId },
-    include: { deliverables: true },
+    include: { deliverables: true, type: true },
     orderBy: { plannedDate: 'asc' },
   })
   return NextResponse.json(milestones)
@@ -35,10 +35,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     data: {
       projectId,
       title: body.title.trim(),
+      description: body.description ?? null,
       plannedDate: new Date(body.plannedDate),
       status: body.status || 'A_VENIR',
       showOnGantt: body.showOnGantt ?? true,
+      color: body.color ?? null,
+      icon: body.icon ?? null,
+      typeId: body.typeId ?? null,
     },
+    include: { type: true },
   })
   return NextResponse.json(milestone, { status: 201 })
 }
