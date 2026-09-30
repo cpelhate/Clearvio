@@ -34,7 +34,7 @@ export async function GET() {
       select: { id: true, name: true, status: true, startDate: true, endDate: true, createdAt: true },
     }),
     prisma.project.findMany({
-      where: { managerId: userId, NOT: { createdBy: userId } },
+      where: { managerId: userId, createdBy: { not: userId } },
       select: { id: true, name: true, status: true, startDate: true, endDate: true },
     }),
     prisma.task.findMany({
@@ -150,7 +150,8 @@ export async function GET() {
     },
   })
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
     console.error('[export] Error:', err)
-    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
+    return NextResponse.json({ error: 'Erreur interne du serveur', detail: message }, { status: 500 })
   }
 }
