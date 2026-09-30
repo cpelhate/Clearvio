@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Settings2, Users, LayoutList, Columns3, GanttChart as GanttChartIcon, CalendarDays, ShieldAlert, Diamond, Package, Target, FileText, Paperclip } from 'lucide-react'
+import { ArrowLeft, Settings2, Users, LayoutList, Columns3, GanttChart as GanttChartIcon, CalendarDays, ShieldAlert, Diamond, Package, Target, FileText, Paperclip, GitFork } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { StatusBadge } from '@/components/projets/status-badge'
 import { Project } from '@/types/project'
@@ -19,6 +19,7 @@ import { EditProjectModal } from '@/components/projets/edit-project-modal'
 import { RisksView } from '@/components/risques/risks-view'
 import { MembersView } from '@/components/projets/members-view'
 import { DocumentsView } from '@/components/documents/documents-view'
+import { DependenciesView } from '@/components/dependencies/dependencies-view'
 import { CalendarView } from '@/components/calendrier/calendar-view'
 import { ProjectMember } from '@/types/project'
 import { Milestone } from '@/types/milestone'
@@ -32,6 +33,7 @@ const tabs = [
   { id: 'jalons', label: 'Jalons', icon: Diamond },
   { id: 'livrables', label: 'Livrables', icon: Package },
   { id: 'objectifs', label: 'Objectifs', icon: Target },
+  { id: 'dependances', label: 'Dépendances', icon: GitFork },
   { id: 'membres', label: 'Membres', icon: Users },
   { id: 'documents', label: 'Documents', icon: Paperclip },
 ]
@@ -291,6 +293,7 @@ function TabContent({ tab, projectId, members }: { tab: string; projectId: strin
     case 'jalons':   return <MilestonesView projectId={projectId} />
     case 'livrables': return <DeliverablesView projectId={projectId} />
     case 'objectifs': return <ObjectivesView projectId={projectId} />
+    case 'dependances': return <DependenciesView projectId={projectId} />
     case 'membres':  return <MembersView members={members} />
     case 'documents': return <DocumentsView projectId={projectId} />
     default: return null

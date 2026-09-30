@@ -32,7 +32,25 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     orderBy: { createdAt: 'asc' },
   })
 
-  return NextResponse.json(dependencies)
+  // Enrich: fetch names/statuses/dates for each referenced element
+  const [enrichedMilestones, enrichedDeliverables, enrichedTasks] = await Promise.all([
+    prisma.milestone.findMany({ where: { projectId }, select: { id: true, title: true, status: true, plannedDate: true, actualDate: true } }),
+    prisma.deliverable.findMany({ where: { projectId }, select: { id: true, title: true, status: true, plannedDate: true } }),
+    prisma.task.findMany({ where: { projectId }, select: { id: true, title: true, status: true, dueDate: true, startDate: true } }),
+  ])
+
+  const byId: Record<string, { title: string; status: string; date: string | null }> = {}
+  for (const m of enrichedMilestones) byId[m.id] = { title: m.title, status: m.status, date: m.plannedDate?.toISOString() ?? null }
+  for (const d of enrichedDeliverables) byId[d.id] = { title: d.title, status: d.status, date: d.plannedDate?.toISOString() ?? null }
+  for (const t of enrichedTasks) byId[t.id] = { title: t.title, status: t.status, date: t.dueDate?.toISOString() ?? null }
+
+  const enriched = dependencies.map(dep => ({
+    ...dep,
+    source: byId[dep.sourceId] ?? null,
+    target: byId[dep.targetId] ?? null,
+  }))
+
+  return NextResponse.json(enriched)
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
