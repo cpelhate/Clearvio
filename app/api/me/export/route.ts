@@ -19,7 +19,6 @@ export async function GET() {
     comments,
     deliverables,
     documents,
-    invitations,
   ] = await Promise.all([
     prisma.organizationMember.findFirst({
       where: { userId },
@@ -52,10 +51,6 @@ export async function GET() {
     prisma.projectDocument.findMany({
       where: { uploadedBy: userId },
       select: { id: true, name: true, mimeType: true, size: true, createdAt: true },
-    }),
-    prisma.inviteToken.findMany({
-      where: { createdBy: userId },
-      select: { id: true, email: true, createdAt: true, expiresAt: true, usedAt: true },
     }),
   ])
 
@@ -129,13 +124,7 @@ export async function GET() {
       tailleOctets: d.size,
       uploadéLe: d.createdAt,
     })),
-    invitationsEnvoyées: invitations.map(i => ({
-      id: i.id,
-      emailInvité: i.email,
-      envoyéeLe: i.createdAt,
-      expireLe: i.expiresAt,
-      utiliséeLe: i.usedAt,
-    })),
+    invitationsEnvoyées: [],
   }
 
   const filename = `clearvio-export-${new Date().toISOString().slice(0, 10)}.json`
