@@ -55,7 +55,7 @@ export async function GET() {
     }),
     prisma.inviteToken.findMany({
       where: { createdBy: userId },
-      select: { id: true, email: true, orgRole: true, projectRole: true, createdAt: true, expiresAt: true, usedAt: true },
+      select: { id: true, email: true, createdAt: true, expiresAt: true, usedAt: true },
     }),
   ])
 
@@ -132,8 +132,6 @@ export async function GET() {
     invitationsEnvoyées: invitations.map(i => ({
       id: i.id,
       emailInvité: i.email,
-      roleOrganisation: i.orgRole,
-      roleProjet: i.projectRole,
       envoyéeLe: i.createdAt,
       expireLe: i.expiresAt,
       utiliséeLe: i.usedAt,
