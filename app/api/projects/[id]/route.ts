@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { prisma } from '@/lib/prisma'
 import { checkPermission, ACTIONS } from '@/lib/permissions'
 
@@ -16,25 +15,21 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   })
   if (!project) return NextResponse.json({ error: 'Projet introuvable' }, { status: 404 })
 
-  const admin = createAdminClient()
-  const enrichedMembers = await Promise.all(
-    project.members.map(async m => {
-      if (!admin) return { ...m, user: { id: m.userId, name: null, email: m.userId } }
-      try {
-        const { data } = await admin.auth.admin.getUserById(m.userId)
-        return {
-          ...m,
-          user: {
-            id: m.userId,
-            name: data.user?.user_metadata?.full_name ?? data.user?.user_metadata?.name ?? null,
-            email: data.user?.email ?? m.userId,
-          },
-        }
-      } catch {
-        return { ...m, user: { id: m.userId, name: null, email: m.userId } }
-      }
-    })
-  )
+  const userIds = project.members.map(m => m.userId)
+  const profiles = await prisma.profile.findMany({ where: { id: { in: userIds } } })
+  const profileMap = Object.fromEntries(profiles.map(p => [p.id, p]))
+
+  const enrichedMembers = project.members.map(m => {
+    const profile = profileMap[m.userId]
+    return {
+      ...m,
+      user: {
+        id: m.userId,
+        name: profile?.fullName ?? null,
+        email: profile?.email ?? m.userId,
+      },
+    }
+  })
 
   return NextResponse.json({ ...project, members: enrichedMembers })
 }

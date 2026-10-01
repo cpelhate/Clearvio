@@ -8,6 +8,16 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model Profile {
+  id        String   @id
+  fullName  String?  @map("full_name")
+  email     String?
+  avatarUrl String?  @map("avatar_url")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  @@map("profiles")
+}
+
 model Organization {
   id          String   @id @default(cuid())
   name        String
