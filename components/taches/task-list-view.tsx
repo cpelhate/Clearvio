@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, ChevronRight, ChevronDown, Flag } from 'lucide-react'
-import { Task, TaskStatus, TASK_STATUS_COLORS, TASK_STATUS_BG, TASK_PRIORITY_COLORS } from '@/types/task'
+import { Plus, ChevronRight, ChevronDown, Flag, Check, Trash2, X } from 'lucide-react'
+import { Task, TaskStatus, TaskPriority, TASK_STATUS_COLORS, TASK_STATUS_BG, TASK_STATUS_LABELS, TASK_PRIORITY_COLORS, TASK_PRIORITY_LABELS } from '@/types/task'
 import { TaskDrawer } from './task-drawer'
 
 interface TaskListViewProps {
@@ -12,6 +12,9 @@ interface TaskListViewProps {
   onUpdateTask: (id: string, data: Partial<Task>) => Promise<unknown>
   onDeleteTask: (id: string) => Promise<unknown>
 }
+
+const STATUS_OPTIONS: TaskStatus[] = ['A_FAIRE', 'EN_COURS', 'EN_REVUE', 'TERMINE', 'BLOQUE']
+const PRIORITY_OPTIONS: TaskPriority[] = ['BASSE', 'NORMALE', 'HAUTE', 'CRITIQUE']
 
 function buildTree(tasks: Task[]): Task[] {
   const map = new Map<string, Task & { children: Task[] }>()
@@ -48,28 +51,49 @@ interface TaskRowProps {
   addingChildOf: string | null
   onAddChild: (parentId: string, title: string) => void
   onCancelAdd: () => void
+  selectedIds: Set<string>
+  onToggleSelect: (id: string) => void
 }
 
-function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingChildOf, onAddChild, onCancelAdd }: TaskRowProps) {
+function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingChildOf, onAddChild, onCancelAdd, selectedIds, onToggleSelect }: TaskRowProps) {
   const [expanded, setExpanded] = useState(true)
   const [newTitle, setNewTitle] = useState('')
+  const [hovered, setHovered] = useState(false)
   const hasChildren = (task.children?.length ?? 0) > 0
   const overdue = isOverdue(task.dueDate, task.status)
+  const isSelected = selectedIds.has(task.id)
+  const showCheckbox = hovered || isSelected || selectedIds.size > 0
+
+  const rowBg = isSelected ? 'var(--color-accent-bg)' : 'transparent'
 
   return (
     <>
       <div
         style={{
           display: 'flex', alignItems: 'center',
-          height: 40, paddingLeft: 16 + depth * 24,
-          paddingRight: 16,
+          height: 40, paddingLeft: 16 + depth * 24, paddingRight: 16,
           borderBottom: '1px solid var(--color-border-subtle)',
           cursor: 'pointer', gap: 8,
-          transition: 'background 80ms',
+          background: rowBg, transition: 'background 80ms',
         }}
-        onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--color-bg-secondary)'}
-        onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
+        onMouseEnter={e => { setHovered(true); if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'var(--color-bg-secondary)' }}
+        onMouseLeave={e => { setHovered(false); (e.currentTarget as HTMLDivElement).style.background = isSelected ? 'var(--color-accent-bg)' : 'transparent' }}
       >
+        {/* Checkbox */}
+        <div
+          onClick={e => { e.stopPropagation(); onToggleSelect(task.id) }}
+          style={{
+            width: 15, height: 15, borderRadius: 3, flexShrink: 0,
+            border: `1.5px solid ${isSelected ? 'var(--color-accent-default)' : 'var(--color-border-default)'}`,
+            background: isSelected ? 'var(--color-accent-default)' : 'transparent',
+            cursor: 'pointer', opacity: showCheckbox ? 1 : 0,
+            transition: 'opacity 100ms, border-color 100ms, background 100ms',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          {isSelected && <Check size={10} strokeWidth={2.5} style={{ color: '#fff' }} />}
+        </div>
+
         {/* Expand toggle */}
         <button
           onClick={e => { e.stopPropagation(); setExpanded(!expanded) }}
@@ -78,7 +102,7 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
           {expanded ? <ChevronDown size={14} strokeWidth={1.5} /> : <ChevronRight size={14} strokeWidth={1.5} />}
         </button>
 
-        {/* Statut dot */}
+        {/* Status dot */}
         <button
           onClick={e => {
             e.stopPropagation()
@@ -95,7 +119,7 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
           }}
         />
 
-        {/* Titre */}
+        {/* Title */}
         <span
           onClick={() => onSelect(task)}
           style={{
@@ -108,7 +132,7 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
           {task.title}
         </span>
 
-        {/* Priorité */}
+        {/* Priority */}
         {task.priority !== 'NORMALE' && (
           <Flag size={13} strokeWidth={1.5} style={{ color: TASK_PRIORITY_COLORS[task.priority], flexShrink: 0 }} />
         )}
@@ -120,7 +144,7 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
           </span>
         )}
 
-        {/* Ajouter sous-tâche */}
+        {/* Add subtask */}
         {depth < 2 && (
           <button
             onClick={e => { e.stopPropagation(); onCreateChild(task.id) }}
@@ -142,6 +166,8 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
           borderBottom: '1px solid var(--color-border-subtle)',
           gap: 8, background: 'var(--color-accent-bg)',
         }}>
+          <div style={{ width: 15, flexShrink: 0 }} />
+          <div style={{ width: 18, flexShrink: 0 }} />
           <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid var(--color-border-default)', flexShrink: 0 }} />
           <input
             autoFocus
@@ -173,6 +199,8 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
           addingChildOf={addingChildOf}
           onAddChild={onAddChild}
           onCancelAdd={onCancelAdd}
+          selectedIds={selectedIds}
+          onToggleSelect={onToggleSelect}
         />
       ))}
     </>
@@ -184,8 +212,56 @@ export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onD
   const [addingChildOf, setAddingChildOf] = useState<string | null>(null)
   const [newRootTitle, setNewRootTitle] = useState('')
   const [addingRoot, setAddingRoot] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkConfirmDelete, setBulkConfirmDelete] = useState(false)
+  const [bulkLoading, setBulkLoading] = useState(false)
+  const [bulkStatusVal, setBulkStatusVal] = useState('')
+  const [bulkPriorityVal, setBulkPriorityVal] = useState('')
 
   const tree = buildTree(tasks) as (Task & { children: Task[] })[]
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+    setBulkConfirmDelete(false)
+  }
+
+  const allSelected = tasks.length > 0 && tasks.every(t => selectedIds.has(t.id))
+  const someSelected = !allSelected && selectedIds.size > 0
+
+  const toggleSelectAll = () => {
+    if (allSelected || someSelected) setSelectedIds(new Set())
+    else setSelectedIds(new Set(tasks.map(t => t.id)))
+    setBulkConfirmDelete(false)
+  }
+
+  const clearSelection = () => { setSelectedIds(new Set()); setBulkConfirmDelete(false) }
+
+  const bulkStatus = async (status: TaskStatus) => {
+    setBulkLoading(true)
+    await Promise.all([...selectedIds].map(id => onUpdateTask(id, { status })))
+    setBulkLoading(false)
+    clearSelection()
+  }
+
+  const bulkPriority = async (priority: TaskPriority) => {
+    setBulkLoading(true)
+    await Promise.all([...selectedIds].map(id => onUpdateTask(id, { priority })))
+    setBulkLoading(false)
+    clearSelection()
+  }
+
+  const bulkDelete = async () => {
+    if (!bulkConfirmDelete) { setBulkConfirmDelete(true); return }
+    setBulkLoading(true)
+    for (const id of [...selectedIds]) await onDeleteTask(id)
+    setBulkLoading(false)
+    clearSelection()
+  }
 
   const handleStatusChange = async (id: string, status: TaskStatus) => {
     await onUpdateTask(id, { status })
@@ -204,17 +280,41 @@ export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onD
     setAddingRoot(false)
   }
 
+  const selectBtnBase: React.CSSProperties = {
+    height: 30, padding: '0 8px',
+    border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)',
+    background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)',
+    fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-primary)',
+  }
+
   return (
     <div style={{ display: 'flex', height: '100%', minHeight: 400 }}>
       {/* Table */}
       <div style={{ flex: 1, overflow: 'hidden' }}>
-        {/* Header tableau */}
+        {/* Header */}
         <div style={{
-          display: 'flex', alignItems: 'center', height: 36,
-          paddingLeft: 64, paddingRight: 16,
+          display: 'flex', alignItems: 'center', height: 36, gap: 8,
+          paddingLeft: 16, paddingRight: 16,
           background: 'var(--color-bg-secondary)',
           borderBottom: '1px solid var(--color-border-default)',
         }}>
+          {/* Select all */}
+          <div
+            onClick={toggleSelectAll}
+            style={{
+              width: 15, height: 15, borderRadius: 3, flexShrink: 0,
+              border: `1.5px solid ${allSelected ? 'var(--color-accent-default)' : 'var(--color-border-default)'}`,
+              background: allSelected ? 'var(--color-accent-default)' : 'transparent',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 100ms, border-color 100ms',
+            }}
+          >
+            {allSelected && <Check size={10} strokeWidth={2.5} style={{ color: '#fff' }} />}
+            {someSelected && <div style={{ width: 7, height: 2, background: 'var(--color-text-tertiary)', borderRadius: 1 }} />}
+          </div>
+          <div style={{ width: 18, flexShrink: 0 }} />
+          <div style={{ width: 14, flexShrink: 0 }} />
           <span style={{ flex: 1, fontSize: 12, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-tertiary)' }}>
             Tâche
           </span>
@@ -254,6 +354,8 @@ export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onD
                   addingChildOf={addingChildOf}
                   onAddChild={handleAddChild}
                   onCancelAdd={() => setAddingChildOf(null)}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
                 />
               ))}
 
@@ -261,10 +363,12 @@ export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onD
               {addingRoot ? (
                 <div style={{
                   display: 'flex', alignItems: 'center', height: 40,
-                  paddingLeft: 54, paddingRight: 16,
+                  paddingLeft: 16, paddingRight: 16,
                   borderBottom: '1px solid var(--color-border-subtle)',
                   gap: 8, background: 'var(--color-accent-bg)',
                 }}>
+                  <div style={{ width: 15, flexShrink: 0 }} />
+                  <div style={{ width: 18, flexShrink: 0 }} />
                   <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid var(--color-border-default)', flexShrink: 0 }} />
                   <input
                     autoFocus
@@ -308,6 +412,77 @@ export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onD
         onUpdate={async (id, data) => { await onUpdateTask(id, data); setSelectedTask(prev => prev ? { ...prev, ...data } : null) }}
         onDelete={onDeleteTask}
       />
+
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div style={{
+          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '8px 12px',
+          background: 'var(--color-bg-elevated)',
+          border: '1px solid var(--color-border-default)',
+          borderRadius: 'var(--radius-xl)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+          zIndex: 100, fontSize: 13, whiteSpace: 'nowrap',
+        }}>
+          <span style={{ fontWeight: 600, color: 'var(--color-text-primary)', padding: '0 4px' }}>
+            {selectedIds.size} sélectionnée{selectedIds.size > 1 ? 's' : ''}
+          </span>
+          <div style={{ width: 1, height: 20, background: 'var(--color-border-default)', flexShrink: 0 }} />
+
+          <select
+            value={bulkStatusVal}
+            onChange={e => { const v = e.target.value; if (v) { setBulkStatusVal(''); bulkStatus(v as TaskStatus) } }}
+            disabled={bulkLoading}
+            style={selectBtnBase}
+          >
+            <option value="" disabled>Statut…</option>
+            {STATUS_OPTIONS.map(s => <option key={s} value={s}>{TASK_STATUS_LABELS[s]}</option>)}
+          </select>
+
+          <select
+            value={bulkPriorityVal}
+            onChange={e => { const v = e.target.value; if (v) { setBulkPriorityVal(''); bulkPriority(v as TaskPriority) } }}
+            disabled={bulkLoading}
+            style={selectBtnBase}
+          >
+            <option value="" disabled>Priorité…</option>
+            {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{TASK_PRIORITY_LABELS[p]}</option>)}
+          </select>
+
+          <div style={{ width: 1, height: 20, background: 'var(--color-border-default)', flexShrink: 0 }} />
+
+          <button
+            onClick={bulkDelete}
+            disabled={bulkLoading}
+            style={{
+              height: 30, padding: '0 10px',
+              background: bulkConfirmDelete ? 'var(--color-danger-default)' : 'var(--color-danger-bg)',
+              border: `1px solid var(--color-danger-default)`,
+              borderRadius: 'var(--radius-md)',
+              color: bulkConfirmDelete ? '#fff' : 'var(--color-danger-default)',
+              fontSize: 12, fontWeight: 500, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 5,
+              fontFamily: 'var(--font-primary)', transition: 'all 120ms',
+            }}
+          >
+            <Trash2 size={13} strokeWidth={1.5} />
+            {bulkConfirmDelete ? 'Confirmer' : 'Supprimer'}
+          </button>
+
+          <button
+            onClick={clearSelection}
+            title="Annuler la sélection"
+            style={{
+              width: 28, height: 28, background: 'none', border: 'none',
+              borderRadius: 'var(--radius-md)', color: 'var(--color-text-tertiary)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <X size={14} strokeWidth={1.5} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Header } from '@/components/layout/header'
 import { TaskDrawer } from '@/components/taches/task-drawer'
-import { Task, TaskStatus, TASK_STATUS_LABELS, TASK_STATUS_COLORS, TASK_STATUS_BG, TASK_PRIORITY_COLORS, TASK_PRIORITY_LABELS, TaskPriority } from '@/types/task'
-import { CheckSquare, Circle, Clock, AlertTriangle, FolderKanban } from 'lucide-react'
+import { Task, TaskStatus, TaskPriority, TASK_STATUS_LABELS, TASK_STATUS_COLORS, TASK_PRIORITY_COLORS, TASK_PRIORITY_LABELS } from '@/types/task'
+import { CheckSquare, Circle, Clock, AlertTriangle, FolderKanban, Check, Trash2, X } from 'lucide-react'
 
 interface TaskWithProject extends Task {
   project: { id: string; name: string; color: string } | null
@@ -19,6 +19,9 @@ const STATUS_FILTERS: { value: TaskStatus | 'ALL' | 'ACTIVE'; label: string }[] 
   { value: 'BLOQUE', label: 'Bloquées' },
   { value: 'TERMINE', label: 'Terminées' },
 ]
+
+const STATUS_OPTIONS: TaskStatus[] = ['A_FAIRE', 'EN_COURS', 'EN_REVUE', 'TERMINE', 'BLOQUE']
+const PRIORITY_OPTIONS: TaskPriority[] = ['BASSE', 'NORMALE', 'HAUTE', 'CRITIQUE']
 
 function isLate(dueDate: string | null, status: TaskStatus) {
   if (!dueDate || status === 'TERMINE') return false
@@ -45,6 +48,11 @@ export default function MesTachesPage() {
   const [groupBy, setGroupBy] = useState<'project' | 'date'>('project')
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [selectedProjectId, setSelectedProjectId] = useState<string>('')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkConfirmDelete, setBulkConfirmDelete] = useState(false)
+  const [bulkLoading, setBulkLoading] = useState(false)
+  const [bulkStatusVal, setBulkStatusVal] = useState('')
+  const [bulkPriorityVal, setBulkPriorityVal] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -61,7 +69,6 @@ export default function MesTachesPage() {
     return tasks.filter(t => t.status === statusFilter)
   }, [tasks, statusFilter])
 
-  // Group by project
   const byProject = useMemo(() => {
     const map = new Map<string, { project: TaskWithProject['project']; tasks: TaskWithProject[] }>()
     for (const t of filtered) {
@@ -72,7 +79,6 @@ export default function MesTachesPage() {
     return Array.from(map.values()).sort((a, b) => (a.project?.name ?? '').localeCompare(b.project?.name ?? ''))
   }, [filtered])
 
-  // Group by due date
   const byDate = useMemo(() => {
     const late: TaskWithProject[] = []
     const today: TaskWithProject[] = []
@@ -121,6 +127,59 @@ export default function MesTachesPage() {
     setSelectedTask(null)
   }
 
+  // Bulk selection
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+    setBulkConfirmDelete(false)
+  }
+
+  const allFilteredIds = filtered.map(t => t.id)
+  const allSelected = allFilteredIds.length > 0 && allFilteredIds.every(id => selectedIds.has(id))
+  const someSelected = !allSelected && selectedIds.size > 0
+
+  const toggleSelectAll = () => {
+    if (allSelected || someSelected) setSelectedIds(new Set())
+    else setSelectedIds(new Set(allFilteredIds))
+    setBulkConfirmDelete(false)
+  }
+
+  const clearSelection = () => { setSelectedIds(new Set()); setBulkConfirmDelete(false) }
+
+  const bulkUpdate = async (data: Partial<Task>) => {
+    setBulkLoading(true)
+    const ids = [...selectedIds]
+    await Promise.all(ids.map(id => {
+      const t = tasks.find(x => x.id === id)
+      if (!t) return
+      return fetch(`/api/projects/${t.projectId}/tasks/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+    }))
+    setTasks(prev => prev.map(t => selectedIds.has(t.id) ? { ...t, ...data } : t))
+    setBulkLoading(false)
+    clearSelection()
+  }
+
+  const bulkDelete = async () => {
+    if (!bulkConfirmDelete) { setBulkConfirmDelete(true); return }
+    setBulkLoading(true)
+    const ids = [...selectedIds]
+    const toDelete = tasks.filter(t => ids.includes(t.id))
+    for (const t of toDelete) {
+      await fetch(`/api/projects/${t.projectId}/tasks/${t.id}`, { method: 'DELETE' })
+    }
+    setTasks(prev => prev.filter(t => !ids.includes(t.id)))
+    if (selectedTask && ids.includes(selectedTask.id)) setSelectedTask(null)
+    setBulkLoading(false)
+    clearSelection()
+  }
+
   const lateCount = tasks.filter(t => isLate(t.dueDate, t.status)).length
   const activeCount = tasks.filter(t => t.status !== 'TERMINE').length
 
@@ -134,24 +193,47 @@ export default function MesTachesPage() {
     whiteSpace: 'nowrap' as const,
   })
 
-  const rowStyle: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: 12,
-    padding: '10px 16px',
-    borderBottom: '1px solid var(--color-border-subtle)',
-    cursor: 'pointer', transition: 'background 120ms',
+  const selectBtnBase: React.CSSProperties = {
+    height: 30, padding: '0 8px',
+    border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)',
+    background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)',
+    fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-primary)',
   }
 
   const renderTaskRow = (t: TaskWithProject, showProject = true) => {
+    const isSelected = selectedIds.has(t.id)
     const late = isLate(t.dueDate, t.status)
     const dateInfo = formatDate(t.dueDate)
     return (
       <div
         key={t.id}
-        style={rowStyle}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 16px',
+          borderBottom: '1px solid var(--color-border-subtle)',
+          cursor: 'pointer', transition: 'background 120ms',
+          background: isSelected ? 'var(--color-accent-bg)' : 'transparent',
+        }}
         onClick={() => { setSelectedTask(t); setSelectedProjectId(t.projectId) }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-tertiary)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        onMouseEnter={e => (e.currentTarget.style.background = isSelected ? 'var(--color-accent-bg)' : 'var(--color-bg-tertiary)')}
+        onMouseLeave={e => (e.currentTarget.style.background = isSelected ? 'var(--color-accent-bg)' : 'transparent')}
       >
+        {/* Checkbox */}
+        <div
+          onClick={e => { e.stopPropagation(); toggleSelect(t.id) }}
+          style={{
+            width: 15, height: 15, borderRadius: 3, flexShrink: 0,
+            border: `1.5px solid ${isSelected ? 'var(--color-accent-default)' : 'var(--color-border-default)'}`,
+            background: isSelected ? 'var(--color-accent-default)' : 'transparent',
+            cursor: 'pointer',
+            opacity: isSelected || selectedIds.size > 0 ? 1 : 0,
+            transition: 'opacity 100ms, background 100ms',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          {isSelected && <Check size={10} strokeWidth={2.5} style={{ color: '#fff' }} />}
+        </div>
+
         {/* Status indicator */}
         <div style={{ width: 14, height: 14, borderRadius: '50%', border: `1.5px solid ${TASK_STATUS_COLORS[t.status]}`, background: t.status === 'TERMINE' ? TASK_STATUS_COLORS[t.status] : 'transparent', flexShrink: 0 }} />
 
@@ -230,7 +312,23 @@ export default function MesTachesPage() {
 
         {/* Controls */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Select all */}
+            <div
+              onClick={toggleSelectAll}
+              title={allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
+              style={{
+                width: 28, height: 28, borderRadius: 'var(--radius-md)',
+                border: `1.5px solid ${allSelected || someSelected ? 'var(--color-accent-default)' : 'var(--color-border-default)'}`,
+                background: allSelected ? 'var(--color-accent-default)' : 'transparent',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0, transition: 'all 100ms',
+              }}
+            >
+              {allSelected && <Check size={13} strokeWidth={2.5} style={{ color: '#fff' }} />}
+              {someSelected && <div style={{ width: 9, height: 2, background: 'var(--color-accent-default)', borderRadius: 1 }} />}
+            </div>
+            <div style={{ width: 1, height: 20, background: 'var(--color-border-subtle)', margin: '0 2px' }} />
             {STATUS_FILTERS.map(f => (
               <button key={f.value} onClick={() => setStatusFilter(f.value)} style={btnStyle(statusFilter === f.value)}>
                 {f.label}
@@ -298,6 +396,77 @@ export default function MesTachesPage() {
           onUpdate={handleUpdate}
           onDelete={handleDelete}
         />
+      )}
+
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div style={{
+          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '8px 12px',
+          background: 'var(--color-bg-elevated)',
+          border: '1px solid var(--color-border-default)',
+          borderRadius: 'var(--radius-xl)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+          zIndex: 100, fontSize: 13, whiteSpace: 'nowrap',
+        }}>
+          <span style={{ fontWeight: 600, color: 'var(--color-text-primary)', padding: '0 4px' }}>
+            {selectedIds.size} sélectionnée{selectedIds.size > 1 ? 's' : ''}
+          </span>
+          <div style={{ width: 1, height: 20, background: 'var(--color-border-default)', flexShrink: 0 }} />
+
+          <select
+            value={bulkStatusVal}
+            onChange={e => { const v = e.target.value; if (v) { setBulkStatusVal(''); bulkUpdate({ status: v as TaskStatus }) } }}
+            disabled={bulkLoading}
+            style={selectBtnBase}
+          >
+            <option value="" disabled>Statut…</option>
+            {STATUS_OPTIONS.map(s => <option key={s} value={s}>{TASK_STATUS_LABELS[s]}</option>)}
+          </select>
+
+          <select
+            value={bulkPriorityVal}
+            onChange={e => { const v = e.target.value; if (v) { setBulkPriorityVal(''); bulkUpdate({ priority: v as TaskPriority }) } }}
+            disabled={bulkLoading}
+            style={selectBtnBase}
+          >
+            <option value="" disabled>Priorité…</option>
+            {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{TASK_PRIORITY_LABELS[p]}</option>)}
+          </select>
+
+          <div style={{ width: 1, height: 20, background: 'var(--color-border-default)', flexShrink: 0 }} />
+
+          <button
+            onClick={bulkDelete}
+            disabled={bulkLoading}
+            style={{
+              height: 30, padding: '0 10px',
+              background: bulkConfirmDelete ? 'var(--color-danger-default)' : 'var(--color-danger-bg)',
+              border: `1px solid var(--color-danger-default)`,
+              borderRadius: 'var(--radius-md)',
+              color: bulkConfirmDelete ? '#fff' : 'var(--color-danger-default)',
+              fontSize: 12, fontWeight: 500, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 5,
+              fontFamily: 'var(--font-primary)', transition: 'all 120ms',
+            }}
+          >
+            <Trash2 size={13} strokeWidth={1.5} />
+            {bulkConfirmDelete ? 'Confirmer' : 'Supprimer'}
+          </button>
+
+          <button
+            onClick={clearSelection}
+            title="Annuler la sélection"
+            style={{
+              width: 28, height: 28, background: 'none', border: 'none',
+              borderRadius: 'var(--radius-md)', color: 'var(--color-text-tertiary)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <X size={14} strokeWidth={1.5} />
+          </button>
+        </div>
       )}
     </>
   )
