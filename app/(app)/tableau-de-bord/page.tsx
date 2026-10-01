@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/header'
 import { StatusBadge } from '@/components/projets/status-badge'
+import { MilestoneDetailModal } from '@/components/jalons/milestone-detail-modal'
 import { FolderKanban, CheckSquare, Diamond, Target } from 'lucide-react'
 import type { ProjectStatus } from '@/types/project'
 
@@ -25,8 +26,11 @@ interface DashboardData {
     id: string
     title: string
     plannedDate: string
+    projectId: string
     projectName: string
     status: string
+    taskCount: number
+    taskDone: number
   }[]
 }
 
@@ -66,6 +70,7 @@ export default function TableauDeBordPage() {
   const router = useRouter()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedMilestone, setSelectedMilestone] = useState<{ id: string; projectId: string } | null>(null)
 
   useEffect(() => {
     fetch('/api/auth/setup', {
@@ -295,47 +300,80 @@ export default function TableauDeBordPage() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {data.upcomingMilestonesList.map((milestone, idx) => (
-                <div
-                  key={milestone.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 16,
-                    padding: '14px 24px',
-                    borderBottom: idx < data.upcomingMilestonesList.length - 1 ? '1px solid var(--color-border-subtle)' : 'none',
-                  }}
-                >
-                  <div style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--color-accent-bg)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                    <Diamond size={16} strokeWidth={1.5} style={{ color: 'var(--color-accent-default)' }} />
+              {data.upcomingMilestonesList.map((milestone, idx) => {
+                const progress = milestone.taskCount > 0
+                  ? Math.round((milestone.taskDone / milestone.taskCount) * 100)
+                  : 0
+                return (
+                  <div
+                    key={milestone.id}
+                    onClick={() => setSelectedMilestone({ id: milestone.id, projectId: milestone.projectId })}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 16,
+                      padding: '14px 24px',
+                      borderBottom: idx < data.upcomingMilestonesList.length - 1 ? '1px solid var(--color-border-subtle)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-tertiary)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <div style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--color-accent-bg)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <Diamond size={16} strokeWidth={1.5} style={{ color: 'var(--color-accent-default)' }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)', margin: '0 0 2px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {milestone.title}
+                      </p>
+                      <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', margin: 0 }}>
+                        {milestone.projectName}
+                      </p>
+                      {milestone.taskCount > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                          <div style={{ flex: 1, height: 3, background: 'var(--color-bg-tertiary)', borderRadius: 'var(--radius-full)', overflow: 'hidden', maxWidth: 120 }}>
+                            <div style={{ width: `${progress}%`, height: '100%', background: 'var(--color-accent-default)', borderRadius: 'var(--radius-full)' }} />
+                          </div>
+                          <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)', flexShrink: 0 }}>{milestone.taskDone}/{milestone.taskCount}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                      <span style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>
+                        {formatDate(milestone.plannedDate)}
+                      </span>
+                      {milestone.taskCount > 0 && (
+                        <span style={{ fontSize: 11, padding: '1px 7px', borderRadius: 10, background: 'var(--color-bg-tertiary)', color: 'var(--color-text-tertiary)', border: '1px solid var(--color-border-subtle)' }}>
+                          {milestone.taskCount} tâche{milestone.taskCount > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)', margin: '0 0 2px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {milestone.title}
-                    </p>
-                    <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', margin: 0 }}>
-                      {milestone.projectName}
-                    </p>
-                  </div>
-                  <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', flexShrink: 0 }}>
-                    {formatDate(milestone.plannedDate)}
-                  </span>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
 
       </div>
+
+      {selectedMilestone && (
+        <MilestoneDetailModal
+          milestoneId={selectedMilestone.id}
+          projectId={selectedMilestone.projectId}
+          onClose={() => setSelectedMilestone(null)}
+        />
+      )}
     </>
   )
 }

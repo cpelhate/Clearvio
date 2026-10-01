@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Header } from '@/components/layout/header'
 import { TaskDrawer } from '@/components/taches/task-drawer'
 import { Task, TaskStatus, TaskPriority, TASK_STATUS_LABELS, TASK_STATUS_COLORS, TASK_PRIORITY_COLORS, TASK_PRIORITY_LABELS } from '@/types/task'
-import { CheckSquare, Circle, Clock, AlertTriangle, FolderKanban, Check, Trash2, X } from 'lucide-react'
+import { CheckSquare, Circle, AlertTriangle, FolderKanban, Check, Trash2, X, Plus } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 interface TaskWithProject extends Task {
   project: { id: string; name: string; color: string } | null
@@ -53,6 +54,13 @@ export default function MesTachesPage() {
   const [bulkLoading, setBulkLoading] = useState(false)
   const [bulkStatusVal, setBulkStatusVal] = useState('')
   const [bulkPriorityVal, setBulkPriorityVal] = useState('')
+  const [showNewTaskForm, setShowNewTaskForm] = useState(false)
+  const [projects, setProjects] = useState<{ id: string; name: string; color: string }[]>([])
+  const [newTaskProjectId, setNewTaskProjectId] = useState('')
+  const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [newTaskDueDate, setNewTaskDueDate] = useState('')
+  const [newTaskSubmitting, setNewTaskSubmitting] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -62,6 +70,14 @@ export default function MesTachesPage() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null))
+    fetch('/api/projects').then(r => r.ok ? r.json() : []).then((ps: { id: string; name: string; color: string }[]) => {
+      setProjects(ps)
+      if (ps.length > 0) setNewTaskProjectId(ps[0].id)
+    }).catch(() => {})
+  }, [])
 
   const filtered = useMemo(() => {
     if (statusFilter === 'ALL') return tasks
@@ -178,6 +194,23 @@ export default function MesTachesPage() {
     if (selectedTask && ids.includes(selectedTask.id)) setSelectedTask(null)
     setBulkLoading(false)
     clearSelection()
+  }
+
+  const submitNewTask = async () => {
+    if (!newTaskTitle.trim() || !newTaskProjectId) return
+    setNewTaskSubmitting(true)
+    const res = await fetch(`/api/projects/${newTaskProjectId}/tasks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: newTaskTitle.trim(), dueDate: newTaskDueDate || null, assigneeId: currentUserId }),
+    })
+    if (res.ok) {
+      setShowNewTaskForm(false)
+      setNewTaskTitle('')
+      setNewTaskDueDate('')
+      load()
+    }
+    setNewTaskSubmitting(false)
   }
 
   const lateCount = tasks.filter(t => isLate(t.dueDate, t.status)).length
@@ -338,8 +371,64 @@ export default function MesTachesPage() {
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={() => setGroupBy('project')} style={btnStyle(groupBy === 'project')}>Par projet</button>
             <button onClick={() => setGroupBy('date')} style={btnStyle(groupBy === 'date')}>Par échéance</button>
+            <button
+              onClick={() => setShowNewTaskForm(v => !v)}
+              style={{ ...btnStyle(showNewTaskForm), display: 'flex', alignItems: 'center', gap: 5, background: showNewTaskForm ? 'var(--color-accent-default)' : 'var(--color-bg-secondary)', color: showNewTaskForm ? '#fff' : 'var(--color-text-primary)' }}
+            >
+              <Plus size={13} strokeWidth={1.5} />
+              Nouvelle tâche
+            </button>
           </div>
         </div>
+
+        {showNewTaskForm && (
+          <div style={{ marginBottom: 16, padding: '16px', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-lg)', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
+            <div style={{ flex: '1 1 180px' }}>
+              <label style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Projet</label>
+              <select
+                value={newTaskProjectId}
+                onChange={e => setNewTaskProjectId(e.target.value)}
+                style={{ width: '100%', height: 32, padding: '0 8px', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', fontSize: 13, fontFamily: 'var(--font-primary)' }}
+              >
+                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+            <div style={{ flex: '2 1 240px' }}>
+              <label style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Titre</label>
+              <input
+                value={newTaskTitle}
+                onChange={e => setNewTaskTitle(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && submitNewTask()}
+                placeholder="Titre de la tâche"
+                style={{ width: '100%', height: 32, padding: '0 10px', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', fontSize: 13, fontFamily: 'var(--font-primary)', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div style={{ flex: '0 1 160px' }}>
+              <label style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Échéance (optionnel)</label>
+              <input
+                type="date"
+                value={newTaskDueDate}
+                onChange={e => setNewTaskDueDate(e.target.value)}
+                style={{ width: '100%', height: 32, padding: '0 8px', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', fontSize: 13, fontFamily: 'var(--font-primary)', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={submitNewTask}
+                disabled={newTaskSubmitting || !newTaskTitle.trim()}
+                style={{ height: 32, padding: '0 14px', background: 'var(--color-accent-default)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-primary)', opacity: newTaskSubmitting || !newTaskTitle.trim() ? 0.5 : 1 }}
+              >
+                {newTaskSubmitting ? '...' : 'Créer'}
+              </button>
+              <button
+                onClick={() => { setShowNewTaskForm(false); setNewTaskTitle(''); setNewTaskDueDate('') }}
+                style={{ height: 32, padding: '0 10px', background: 'none', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--color-text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-primary)' }}
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Content */}
         {loading ? (

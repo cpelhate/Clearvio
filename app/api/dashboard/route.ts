@@ -32,6 +32,10 @@ export async function GET() {
         status: 'A_VENIR',
         plannedDate: { gte: now, lte: in30days },
       },
+      include: {
+        _count: { select: { tasks: true } },
+        tasks: { select: { id: true, status: true } },
+      },
       orderBy: { plannedDate: 'asc' },
       take: 5,
     }),
@@ -84,8 +88,11 @@ export async function GET() {
     id: m.id,
     title: m.title,
     plannedDate: m.plannedDate,
+    projectId: m.projectId,
     projectName: milestoneProjectMap.get(m.projectId) ?? 'Projet inconnu',
     status: m.status,
+    taskCount: m._count.tasks,
+    taskDone: m.tasks.filter(t => t.status === 'TERMINE').length,
   }))
 
   return NextResponse.json({

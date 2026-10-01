@@ -49,7 +49,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       status: status || 'A_FAIRE',
       priority: priority || 'NORMALE',
       dueDate: dueDate ? new Date(dueDate) : null,
-      assigneeId: assigneeId || null,
+      assigneeId: assigneeId || user.id,
       level,
       order: count,
     },

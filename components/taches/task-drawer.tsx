@@ -26,6 +26,7 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [milestones, setMilestones] = useState<Milestone[]>([])
+  const [members, setMembers] = useState<{ id: string; userId: string; role: string; user: { id: string; name: string | null; email: string } }[]>([])
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null))
@@ -36,6 +37,10 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
       fetch(`/api/projects/${projectId}/milestones`)
         .then(r => r.ok ? r.json() : [])
         .then(setMilestones)
+        .catch(() => {})
+      fetch(`/api/projects/${projectId}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(p => { if (p?.members) setMembers(p.members) })
         .catch(() => {})
     }
   }, [projectId])
@@ -162,6 +167,27 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
                 {milestones.map(m => (
                   <option key={m.id} value={m.id}>
                     {m.title} · {new Date(m.plannedDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Assigné à */}
+          {members.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 6 }}>
+                Assigné à
+              </label>
+              <select
+                value={task.assigneeId ?? ''}
+                onChange={e => save('assigneeId', e.target.value || null)}
+                style={{ ...inputStyle, height: 32, padding: '0 8px', fontSize: 13 }}
+              >
+                <option value="">— Non assigné —</option>
+                {members.map(m => (
+                  <option key={m.userId} value={m.userId}>
+                    {m.user.name ?? m.user.email}
                   </option>
                 ))}
               </select>

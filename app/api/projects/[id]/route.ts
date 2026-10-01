@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { prisma } from '@/lib/prisma'
 import { checkPermission, ACTIONS } from '@/lib/permissions'
 
@@ -15,7 +16,27 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   })
   if (!project) return NextResponse.json({ error: 'Projet introuvable' }, { status: 404 })
 
-  return NextResponse.json(project)
+  const admin = createAdminClient()
+  const enrichedMembers = await Promise.all(
+    project.members.map(async m => {
+      if (!admin) return { ...m, user: { id: m.userId, name: null, email: m.userId } }
+      try {
+        const { data } = await admin.auth.admin.getUserById(m.userId)
+        return {
+          ...m,
+          user: {
+            id: m.userId,
+            name: data.user?.user_metadata?.full_name ?? data.user?.user_metadata?.name ?? null,
+            email: data.user?.email ?? m.userId,
+          },
+        }
+      } catch {
+        return { ...m, user: { id: m.userId, name: null, email: m.userId } }
+      }
+    })
+  )
+
+  return NextResponse.json({ ...project, members: enrichedMembers })
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
