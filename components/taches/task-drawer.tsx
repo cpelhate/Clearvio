@@ -27,6 +27,9 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [milestones, setMilestones] = useState<Milestone[]>([])
   const [members, setMembers] = useState<{ id: string; userId: string; role: string; user: { id: string; name: string | null; email: string } }[]>([])
+  const [draft, setDraft] = useState<Partial<Task>>({})
+
+  const isDirty = Object.keys(draft).length > 0
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null))
@@ -50,16 +53,31 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
       setTitle(task.title)
       setShortName(task.shortName || '')
       setDescription(task.description || '')
+      setDraft({})
       setConfirmDelete(false)
     }
   }, [task])
 
   if (!task) return null
 
-  const save = async (field: string, value: unknown) => {
+  const handleSave = async () => {
+    if (!isDirty) return
     setSaving(true)
-    await onUpdate(task.id, { [field]: value } as Partial<Task>)
+    await onUpdate(task.id, draft)
+    setDraft({})
     setSaving(false)
+  }
+
+  const handleDiscard = () => {
+    setDraft({})
+    setTitle(task.title)
+    setShortName(task.shortName || '')
+    setDescription(task.description || '')
+  }
+
+  const handleClose = () => {
+    if (isDirty && !confirm('Des modifications non enregistrées seront perdues. Fermer quand même ?')) return
+    onClose()
   }
 
   const handleDelete = async () => {
@@ -82,7 +100,7 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
   return (
     <>
       {/* Overlay */}
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 49, background: 'rgba(0,0,0,0.2)' }} />
+      <div onClick={handleClose} style={{ position: 'fixed', inset: 0, zIndex: 49, background: 'rgba(0,0,0,0.2)' }} />
 
       {/* Drawer */}
       <div style={{
@@ -103,7 +121,6 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
             <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               {levelLabel}
             </span>
-            {saving && <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>Sauvegarde...</span>}
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
             <button
@@ -119,7 +136,7 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
               <Trash2 size={14} strokeWidth={1.5} />
               {confirmDelete ? 'Confirmer' : ''}
             </button>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)', padding: 6, borderRadius: 'var(--radius-md)' }}>
+            <button onClick={handleClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)', padding: 6, borderRadius: 'var(--radius-md)' }}>
               <X size={18} strokeWidth={1.5} />
             </button>
           </div>
@@ -130,8 +147,7 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
           {/* Titre */}
           <input
             value={title}
-            onChange={e => setTitle(e.target.value)}
-            onBlur={() => title !== task.title && save('title', title)}
+            onChange={e => { setTitle(e.target.value); setDraft(d => ({ ...d, title: e.target.value })) }}
             style={{ ...inputStyle, fontSize: 17, fontWeight: 500, border: 'none', padding: '4px 0', borderRadius: 0, background: 'transparent', marginBottom: 8 }}
             placeholder="Titre de la tâche"
           />
@@ -143,8 +159,7 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
             </label>
             <input
               value={shortName}
-              onChange={e => setShortName(e.target.value.slice(0, 6))}
-              onBlur={() => shortName !== (task.shortName || '') && save('shortName', shortName || null)}
+              onChange={e => { const v = e.target.value.slice(0, 6); setShortName(v); setDraft(d => ({ ...d, shortName: v || null })) }}
               maxLength={6}
               placeholder={task.title.slice(0, 6)}
               style={{ ...inputStyle, width: 100, height: 28, padding: '0 8px', fontSize: 12, fontFamily: 'var(--font-mono)' }}
@@ -159,8 +174,8 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
                 Jalon
               </label>
               <select
-                value={task.milestoneId ?? ''}
-                onChange={e => save('milestoneId', e.target.value || null)}
+                value={draft.milestoneId !== undefined ? (draft.milestoneId ?? '') : (task.milestoneId ?? '')}
+                onChange={e => setDraft(d => ({ ...d, milestoneId: e.target.value || null }))}
                 style={{ ...inputStyle, height: 32, padding: '0 8px', fontSize: 13 }}
               >
                 <option value="">— Aucun jalon —</option>
@@ -180,8 +195,8 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
                 Assigné à
               </label>
               <select
-                value={task.assigneeId ?? ''}
-                onChange={e => save('assigneeId', e.target.value || null)}
+                value={draft.assigneeId !== undefined ? (draft.assigneeId ?? '') : (task.assigneeId ?? '')}
+                onChange={e => setDraft(d => ({ ...d, assigneeId: e.target.value || null }))}
                 style={{ ...inputStyle, height: 32, padding: '0 8px', fontSize: 13 }}
               >
                 <option value="">— Non assigné —</option>
@@ -202,8 +217,8 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
                 Statut
               </label>
               <select
-                value={task.status}
-                onChange={e => save('status', e.target.value)}
+                value={draft.status !== undefined ? draft.status : task.status}
+                onChange={e => setDraft(d => ({ ...d, status: e.target.value as TaskStatus }))}
                 style={{ ...inputStyle, height: 32, padding: '0 8px', fontSize: 13 }}
               >
                 {STATUS_OPTIONS.map(s => (
@@ -218,9 +233,9 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
                 Priorité
               </label>
               <select
-                value={task.priority}
-                onChange={e => save('priority', e.target.value)}
-                style={{ ...inputStyle, height: 32, padding: '0 8px', fontSize: 13, color: TASK_PRIORITY_COLORS[task.priority] }}
+                value={draft.priority !== undefined ? draft.priority : task.priority}
+                onChange={e => setDraft(d => ({ ...d, priority: e.target.value as TaskPriority }))}
+                style={{ ...inputStyle, height: 32, padding: '0 8px', fontSize: 13, color: TASK_PRIORITY_COLORS[(draft.priority !== undefined ? draft.priority : task.priority)] }}
               >
                 {PRIORITY_OPTIONS.map(p => (
                   <option key={p} value={p}>{TASK_PRIORITY_LABELS[p]}</option>
@@ -235,8 +250,11 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
               </label>
               <input
                 type="date"
-                value={task.dueDate ? task.dueDate.split('T')[0] : ''}
-                onChange={e => save('dueDate', e.target.value || null)}
+                value={(() => {
+                  const val = draft.dueDate !== undefined ? draft.dueDate : task.dueDate
+                  return val ? val.split('T')[0] : ''
+                })()}
+                onChange={e => setDraft(d => ({ ...d, dueDate: e.target.value || null }))}
                 style={{ ...inputStyle, height: 32, padding: '0 8px', fontSize: 13 }}
               />
             </div>
@@ -249,8 +267,7 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
             </label>
             <textarea
               value={description}
-              onChange={e => setDescription(e.target.value)}
-              onBlur={() => description !== (task.description || '') && save('description', description || null)}
+              onChange={e => { setDescription(e.target.value); setDraft(d => ({ ...d, description: e.target.value || null })) }}
               rows={6}
               placeholder="Ajoutez une description..."
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }}
@@ -265,6 +282,48 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
               currentUserId={currentUserId}
             />
           )}
+        </div>
+
+        {/* Sticky footer */}
+        <div style={{
+          borderTop: '1px solid var(--color-border-subtle)',
+          padding: '12px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+          background: 'var(--color-bg-elevated)',
+        }}>
+          <span style={{ fontSize: 11, color: isDirty ? 'var(--color-warning-default)' : 'var(--color-text-tertiary)' }}>
+            {isDirty
+              ? `${Object.keys(draft).length} champ${Object.keys(draft).length > 1 ? 's' : ''} modifié${Object.keys(draft).length > 1 ? 's' : ''}`
+              : 'Tout est à jour'}
+          </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={handleDiscard}
+              disabled={!isDirty}
+              style={{
+                padding: '7px 14px', borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--color-border-default)',
+                background: 'none', color: 'var(--color-text-secondary)',
+                fontSize: 13, fontWeight: 500, cursor: isDirty ? 'pointer' : 'default',
+                opacity: isDirty ? 1 : 0.4,
+              }}
+            >Annuler</button>
+            <button
+              onClick={handleSave}
+              disabled={!isDirty || saving}
+              style={{
+                padding: '7px 16px', borderRadius: 'var(--radius-md)',
+                border: 'none', background: isDirty ? 'var(--color-accent-default)' : 'var(--color-border-default)',
+                color: isDirty ? '#fff' : 'var(--color-text-tertiary)',
+                fontSize: 13, fontWeight: 500, cursor: isDirty ? 'pointer' : 'default',
+                boxShadow: isDirty ? '0 0 0 3px var(--color-accent-subtle)' : 'none',
+                transition: 'all 150ms ease',
+              }}
+            >{saving ? 'Enregistrement…' : 'Enregistrer'}</button>
+          </div>
         </div>
       </div>
 
