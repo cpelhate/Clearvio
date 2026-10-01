@@ -15,12 +15,14 @@ import {
   Moon,
   Monitor,
   FolderKanban,
+  CheckSquare,
 } from "lucide-react"
 import { Logo } from "@/components/logo"
 
 const navItems = [
   { href: "/tableau-de-bord", label: "Tableau de bord", icon: LayoutDashboard, navAction: '' },
   { href: "/projets", label: "Projets", icon: FolderKanban, navAction: '' },
+  { href: "/mes-taches", label: "Mes tâches", icon: CheckSquare, navAction: '' },
   { href: "/portefeuille", label: "Portefeuille", icon: Briefcase, navAction: 'nav.portefeuille' },
   { href: "/roadmap", label: "Roadmap", icon: Route, navAction: 'nav.roadmap' },
 ]
