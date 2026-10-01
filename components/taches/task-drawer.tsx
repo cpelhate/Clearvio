@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, Trash2 } from 'lucide-react'
 import { Task, TaskStatus, TaskPriority, TASK_STATUS_LABELS, TASK_PRIORITY_LABELS, TASK_PRIORITY_COLORS } from '@/types/task'
+import { Milestone } from '@/types/milestone'
 import { TaskComments } from './task-comments'
 import { createClient } from '@/lib/supabase/client'
 
@@ -24,10 +25,20 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [milestones, setMilestones] = useState<Milestone[]>([])
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null))
   }, [])
+
+  useEffect(() => {
+    if (projectId) {
+      fetch(`/api/projects/${projectId}/milestones`)
+        .then(r => r.ok ? r.json() : [])
+        .then(setMilestones)
+        .catch(() => {})
+    }
+  }, [projectId])
 
   useEffect(() => {
     if (task) {
@@ -135,6 +146,27 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
             />
             <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>Affiché dans le calendrier · 6 car. max</span>
           </div>
+
+          {/* Jalon */}
+          {milestones.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 6 }}>
+                Jalon
+              </label>
+              <select
+                value={task.milestoneId ?? ''}
+                onChange={e => save('milestoneId', e.target.value || null)}
+                style={{ ...inputStyle, height: 32, padding: '0 8px', fontSize: 13 }}
+              >
+                <option value="">— Aucun jalon —</option>
+                {milestones.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.title} · {new Date(m.plannedDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Champs rapides */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>

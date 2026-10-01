@@ -20,7 +20,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       ...(body.title !== undefined && { title: body.title }),
       ...(body.description !== undefined && { description: body.description }),
       ...(body.status !== undefined && { status: body.status }),
-      ...(body.milestoneId !== undefined && { milestoneId: body.milestoneId }),
+      ...(body.milestoneId !== undefined && { milestoneId: body.milestoneId || null }),
+      ...(body.taskId !== undefined && { taskId: body.taskId || null }),
       ...(body.plannedDate !== undefined && { plannedDate: body.plannedDate ? new Date(body.plannedDate) : null }),
     },
   })

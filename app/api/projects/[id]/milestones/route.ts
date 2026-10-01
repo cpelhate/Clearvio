@@ -11,7 +11,15 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const milestones = await prisma.milestone.findMany({
     where: { projectId },
-    include: { deliverables: true, type: true },
+    include: {
+      deliverables: { include: { task: { select: { id: true, title: true, status: true } } } },
+      type: true,
+      tasks: {
+        where: { parentId: null },
+        include: { children: { orderBy: [{ order: 'asc' }, { createdAt: 'asc' }] } },
+        orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+      },
+    },
     orderBy: { plannedDate: 'asc' },
   })
   return NextResponse.json(milestones)

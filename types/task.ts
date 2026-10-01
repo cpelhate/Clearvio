@@ -43,6 +43,7 @@ export interface Task {
   id: string
   projectId: string
   parentId: string | null
+  milestoneId: string | null
   title: string
   shortName: string | null
   description: string | null

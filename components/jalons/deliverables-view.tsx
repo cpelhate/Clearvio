@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Package, Trash2 } from 'lucide-react'
 import { Deliverable, DeliverableStatus, DELIVERABLE_STATUS_LABELS, DELIVERABLE_STATUS_COLORS, DELIVERABLE_STATUS_BG, Milestone } from '@/types/milestone'
+import { Task } from '@/types/task'
 
 function formatDate(d: string | null) {
   if (!d) return '—'
@@ -16,9 +17,10 @@ interface DeliverablesViewProps { projectId: string }
 export function DeliverablesView({ projectId }: DeliverablesViewProps) {
   const [deliverables, setDeliverables] = useState<Deliverable[]>([])
   const [milestones, setMilestones] = useState<Milestone[]>([])
+  const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ title: '', description: '', milestoneId: '', plannedDate: '', status: 'A_FAIRE' as DeliverableStatus })
+  const [form, setForm] = useState({ title: '', description: '', milestoneId: '', taskId: '', plannedDate: '', status: 'A_FAIRE' as DeliverableStatus })
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -26,12 +28,14 @@ export function DeliverablesView({ projectId }: DeliverablesViewProps) {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [dRes, mRes] = await Promise.all([
+    const [dRes, mRes, tRes] = await Promise.all([
       fetch(`/api/projects/${projectId}/deliverables`),
       fetch(`/api/projects/${projectId}/milestones`),
+      fetch(`/api/projects/${projectId}/tasks`),
     ])
     if (dRes.ok) setDeliverables(await dRes.json())
     if (mRes.ok) setMilestones(await mRes.json())
+    if (tRes.ok) setTasks(await tRes.json())
     setLoading(false)
   }, [projectId])
 
@@ -43,9 +47,9 @@ export function DeliverablesView({ projectId }: DeliverablesViewProps) {
     const res = await fetch(`/api/projects/${projectId}/deliverables`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, milestoneId: form.milestoneId || null }),
+      body: JSON.stringify({ ...form, milestoneId: form.milestoneId || null, taskId: form.taskId || null }),
     })
-    if (res.ok) { await load(); setShowForm(false); setForm({ title: '', description: '', milestoneId: '', plannedDate: '', status: 'A_FAIRE' }) }
+    if (res.ok) { await load(); setShowForm(false); setForm({ title: '', description: '', milestoneId: '', taskId: '', plannedDate: '', status: 'A_FAIRE' }) }
     setSaving(false)
   }
 
@@ -112,6 +116,13 @@ export function DeliverablesView({ projectId }: DeliverablesViewProps) {
                 {milestones.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
               </select>
             </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>Tâche associée</label>
+              <select value={form.taskId} onChange={e => setForm(p => ({ ...p, taskId: e.target.value }))} style={inputStyle}>
+                <option value="">Aucune</option>
+                {tasks.filter(t => t.level === 0).map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+              </select>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={handleCreate} disabled={saving} style={{ height: 32, padding: '0 14px', background: 'var(--color-accent-default)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', color: '#fff' }}>
@@ -137,15 +148,15 @@ export function DeliverablesView({ projectId }: DeliverablesViewProps) {
       ) : (
         <div style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
           {/* Header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 160px 36px', gap: 16, padding: '8px 16px', background: 'var(--color-bg-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
-            {['Livrable', 'Statut', 'Date prévue', ''].map((h, i) => (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px 120px 120px 36px', gap: 12, padding: '8px 16px', background: 'var(--color-bg-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
+            {['Livrable', 'Tâche liée', 'Statut', 'Date prévue', ''].map((h, i) => (
               <span key={i} style={{ fontSize: 12, fontWeight: 500, textTransform: 'uppercase' as const, letterSpacing: '0.04em', color: 'var(--color-text-tertiary)' }}>{h}</span>
             ))}
           </div>
           {deliverables.map((d, idx) => (
             <div key={d.id} style={{
-              display: 'grid', gridTemplateColumns: '1fr 140px 160px 36px',
-              gap: 16, padding: '10px 16px', alignItems: 'center',
+              display: 'grid', gridTemplateColumns: '1fr 180px 120px 120px 36px',
+              gap: 12, padding: '10px 16px', alignItems: 'center',
               borderBottom: idx < deliverables.length - 1 ? '1px solid var(--color-border-subtle)' : 'none',
             }}>
               {editingId === d.id ? (
@@ -166,6 +177,21 @@ export function DeliverablesView({ projectId }: DeliverablesViewProps) {
                   {d.title}
                 </span>
               )}
+              {/* Tâche liée */}
+              <select
+                value={d.taskId ?? ''}
+                onChange={async e => {
+                  await fetch(`/api/projects/${projectId}/deliverables/${d.id}`, {
+                    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ taskId: e.target.value || null }),
+                  })
+                  await load()
+                }}
+                style={{ height: 26, padding: '0 6px', fontSize: 11, border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', background: 'var(--color-bg-primary)', color: 'var(--color-text-secondary)', cursor: 'pointer', outline: 'none', fontFamily: 'var(--font-primary)' }}
+              >
+                <option value="">— Aucune —</option>
+                {tasks.filter(t => t.level === 0).map(t => <option key={t.id} value={t.id}>{t.title.slice(0, 30)}</option>)}
+              </select>
               <select
                 value={d.status}
                 onChange={e => handleStatusChange(d.id, e.target.value as DeliverableStatus)}

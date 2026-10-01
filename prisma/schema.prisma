@@ -185,6 +185,7 @@ model Task {
   id          String       @id @default(cuid())
   projectId   String
   parentId    String?
+  milestoneId String?      @map("milestone_id")
   title       String
   shortName   String?      @map("short_name") @db.VarChar(6)
   description String?
@@ -200,9 +201,11 @@ model Task {
 
   parent      Task?   @relation("TaskHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children    Task[]  @relation("TaskHierarchy")
+  milestone   Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
 
   dependsOn   TaskDependency[] @relation("DependentTask")
   blockedBy   TaskDependency[] @relation("BlockingTask")
+  deliverables Deliverable[]
 
   @@map("tasks")
 }
@@ -288,6 +291,7 @@ model Milestone {
 
   type          MilestoneType?  @relation(fields: [typeId], references: [id], onDelete: SetNull)
   deliverables  Deliverable[]
+  tasks         Task[]
 
   @@map("milestones")
 }
@@ -296,6 +300,7 @@ model Deliverable {
   id           String            @id @default(cuid())
   projectId    String
   milestoneId  String?
+  taskId       String?           @map("task_id")
   title        String
   description  String?
   responsibleId String?
@@ -305,6 +310,7 @@ model Deliverable {
   updatedAt    DateTime          @updatedAt
 
   milestone    Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  task         Task?      @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
   @@map("deliverables")
 }

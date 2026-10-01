@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Diamond, Trash2, ChevronDown, ChevronRight, Pencil, Check, X } from 'lucide-react'
+import { Plus, Diamond, Trash2, ChevronDown, ChevronRight, Pencil, Check, X, ListTodo } from 'lucide-react'
 import { Milestone, MilestoneType, MilestoneStatus, MILESTONE_STATUS_LABELS, MILESTONE_STATUS_COLORS, MILESTONE_STATUS_BG } from '@/types/milestone'
+import { Task, TASK_STATUS_COLORS } from '@/types/task'
 
 function formatDate(d: string | null) {
   if (!d) return '—'
@@ -24,6 +25,11 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValues, setEditValues] = useState<{ title: string; shortName: string; plannedDate: string; typeId: string }>({ title: '', shortName: '', plannedDate: '', typeId: '' })
+  const [addingTaskFor, setAddingTaskFor] = useState<string | null>(null)
+  const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [addingSubTaskFor, setAddingSubTaskFor] = useState<string | null>(null)
+  const [newSubTaskTitle, setNewSubTaskTitle] = useState('')
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set())
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -87,6 +93,23 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
+  }
+
+  const toggleExpandTask = (id: string) => {
+    setExpandedTasks(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const createTask = async (milestoneId: string, title: string, parentId?: string) => {
+    if (!title.trim()) return
+    await fetch(`/api/projects/${projectId}/tasks`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: title.trim(), milestoneId: parentId ? undefined : milestoneId, parentId: parentId || undefined }),
+    })
+    await load()
   }
 
   const inputStyle = {
@@ -296,14 +319,15 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
                   {STATUS_OPTIONS.map(s => <option key={s} value={s}>{MILESTONE_STATUS_LABELS[s]}</option>)}
                 </select>
 
-                {/* Livrables toggle */}
-                {(m.deliverables?.length ?? 0) > 0 && (
-                  <button onClick={() => toggleExpand(m.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)', padding: 4, display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                    {expanded.has(m.id) ? <ChevronDown size={14} strokeWidth={1.5} /> : <ChevronRight size={14} strokeWidth={1.5} />}
-                    {m.deliverables?.length} livrable{(m.deliverables?.length ?? 0) > 1 ? 's' : ''}
-                  </button>
-                )}
+                {/* Expand toggle (tâches + livrables) */}
+                <button onClick={() => toggleExpand(m.id)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)', padding: 4, display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+                  {expanded.has(m.id) ? <ChevronDown size={14} strokeWidth={1.5} /> : <ChevronRight size={14} strokeWidth={1.5} />}
+                  {(m.tasks?.length ?? 0) > 0 && <><ListTodo size={13} strokeWidth={1.5} /> {m.tasks?.length}</>}
+                  {(m.deliverables?.length ?? 0) > 0 && (m.tasks?.length ?? 0) > 0 && <span>·</span>}
+                  {(m.deliverables?.length ?? 0) > 0 && <>{m.deliverables?.length} livrable{(m.deliverables?.length ?? 0) > 1 ? 's' : ''}</>}
+                  {(m.tasks?.length ?? 0) === 0 && (m.deliverables?.length ?? 0) === 0 && <span style={{ opacity: .6 }}>Développer</span>}
+                </button>
 
                 {/* Supprimer */}
                 <button
@@ -319,15 +343,130 @@ export function MilestonesView({ projectId }: MilestonesViewProps) {
                 </button>
               </div>
 
-              {/* Livrables liés */}
-              {expanded.has(m.id) && m.deliverables && m.deliverables.length > 0 && (
-                <div style={{ borderTop: '1px solid var(--color-border-subtle)', padding: '8px 16px 12px 44px' }}>
-                  {m.deliverables.map(d => (
-                    <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 13, color: 'var(--color-text-secondary)' }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-border-default)', flexShrink: 0 }} />
-                      {d.title}
+              {/* Détail : tâches + livrables */}
+              {expanded.has(m.id) && (
+                <div style={{ borderTop: '1px solid var(--color-border-subtle)' }}>
+                  {/* Section tâches */}
+                  <div style={{ padding: '10px 16px 4px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--color-text-tertiary)' }}>
+                        Tâches
+                      </span>
+                      <button
+                        onClick={() => { setAddingTaskFor(m.id); setNewTaskTitle('') }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--color-accent-default)', padding: '2px 6px', borderRadius: 'var(--radius-sm)' }}
+                      >
+                        <Plus size={12} strokeWidth={1.5} /> Ajouter une tâche
+                      </button>
                     </div>
-                  ))}
+
+                    {m.tasks && m.tasks.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginBottom: 6 }}>
+                        {m.tasks.map((t: Task) => (
+                          <div key={t.id}>
+                            {/* Ligne tâche */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 'var(--radius-sm)', background: 'var(--color-bg-primary)' }}>
+                              <button
+                                onClick={() => toggleExpandTask(t.id)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--color-text-tertiary)', opacity: (t.children?.length ?? 0) > 0 ? 1 : 0, pointerEvents: (t.children?.length ?? 0) > 0 ? 'auto' : 'none', flexShrink: 0 }}
+                              >
+                                {expandedTasks.has(t.id) ? <ChevronDown size={12} strokeWidth={1.5} /> : <ChevronRight size={12} strokeWidth={1.5} />}
+                              </button>
+                              <div style={{ width: 10, height: 10, borderRadius: '50%', border: `1.5px solid ${TASK_STATUS_COLORS[t.status]}`, background: t.status === 'TERMINE' ? TASK_STATUS_COLORS[t.status] : 'transparent', flexShrink: 0 }} />
+                              <span style={{ flex: 1, fontSize: 13, color: 'var(--color-text-primary)', textDecoration: t.status === 'TERMINE' ? 'line-through' : 'none', opacity: t.status === 'TERMINE' ? .6 : 1 }}>
+                                {t.title}
+                              </span>
+                              <button
+                                onClick={() => { setAddingSubTaskFor(t.id); setNewSubTaskTitle('') }}
+                                title="Ajouter une sous-tâche"
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', color: 'var(--color-text-tertiary)', borderRadius: 'var(--radius-sm)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 3, opacity: 0, transition: 'opacity 150ms' }}
+                                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.opacity = '1'}
+                                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.opacity = '0'}
+                              >
+                                <Plus size={11} strokeWidth={1.5} /> Sous-tâche
+                              </button>
+                            </div>
+
+                            {/* Inline add sub-task */}
+                            {addingSubTaskFor === t.id && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px 4px 32px', background: 'var(--color-accent-bg)', borderRadius: 'var(--radius-sm)', marginTop: 2 }}>
+                                <div style={{ width: 10, height: 10, borderRadius: '50%', border: '1.5px solid var(--color-border-default)', flexShrink: 0 }} />
+                                <input
+                                  autoFocus
+                                  value={newSubTaskTitle}
+                                  onChange={e => setNewSubTaskTitle(e.target.value)}
+                                  onKeyDown={async e => {
+                                    if (e.key === 'Enter' && newSubTaskTitle.trim()) {
+                                      await createTask(m.id, newSubTaskTitle, t.id)
+                                      setAddingSubTaskFor(null); setNewSubTaskTitle('')
+                                    }
+                                    if (e.key === 'Escape') { setAddingSubTaskFor(null); setNewSubTaskTitle('') }
+                                  }}
+                                  placeholder="Nom de la sous-tâche…"
+                                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--color-text-primary)', fontFamily: 'var(--font-primary)' }}
+                                />
+                                <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>Entrée · Échap</span>
+                              </div>
+                            )}
+
+                            {/* Sous-tâches expandées */}
+                            {expandedTasks.has(t.id) && t.children && t.children.map((st: Task) => (
+                              <div key={st.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px 4px 28px', borderRadius: 'var(--radius-sm)' }}>
+                                <div style={{ width: 8, height: 8, borderRadius: '50%', border: `1.5px solid ${TASK_STATUS_COLORS[st.status]}`, background: st.status === 'TERMINE' ? TASK_STATUS_COLORS[st.status] : 'transparent', flexShrink: 0 }} />
+                                <span style={{ fontSize: 12, color: 'var(--color-text-secondary)', textDecoration: st.status === 'TERMINE' ? 'line-through' : 'none', opacity: st.status === 'TERMINE' ? .6 : 1 }}>
+                                  {st.title}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', fontStyle: 'italic', marginBottom: 6, paddingLeft: 8 }}>Aucune tâche rattachée</p>
+                    )}
+
+                    {/* Inline add task */}
+                    {addingTaskFor === m.id && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: 'var(--color-accent-bg)', borderRadius: 'var(--radius-sm)', marginTop: 4 }}>
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', border: '1.5px solid var(--color-border-default)', flexShrink: 0 }} />
+                        <input
+                          autoFocus
+                          value={newTaskTitle}
+                          onChange={e => setNewTaskTitle(e.target.value)}
+                          onKeyDown={async e => {
+                            if (e.key === 'Enter' && newTaskTitle.trim()) {
+                              await createTask(m.id, newTaskTitle)
+                              setAddingTaskFor(null); setNewTaskTitle('')
+                            }
+                            if (e.key === 'Escape') { setAddingTaskFor(null); setNewTaskTitle('') }
+                          }}
+                          placeholder="Nom de la tâche…"
+                          style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 13, color: 'var(--color-text-primary)', fontFamily: 'var(--font-primary)' }}
+                        />
+                        <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>Entrée · Échap</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Section livrables */}
+                  {m.deliverables && m.deliverables.length > 0 && (
+                    <div style={{ padding: '8px 16px 12px 16px', borderTop: '1px solid var(--color-border-subtle)' }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--color-text-tertiary)', display: 'block', marginBottom: 6 }}>
+                        Livrables
+                      </span>
+                      {m.deliverables.map(d => (
+                        <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', fontSize: 13, color: 'var(--color-text-secondary)', borderRadius: 'var(--radius-sm)' }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-border-default)', flexShrink: 0 }} />
+                          {d.title}
+                          {d.task && (
+                            <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginLeft: 4 }}>
+                              → {d.task.title}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

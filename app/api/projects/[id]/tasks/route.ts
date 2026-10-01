@@ -28,7 +28,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!perm.allowed) return NextResponse.json({ error: 'Permission refusée' }, { status: 403 })
 
   const body = await request.json()
-  const { title, parentId, status, priority, dueDate, assigneeId } = body
+  const { title, parentId, milestoneId, status, priority, dueDate, assigneeId } = body
 
   if (!title?.trim()) return NextResponse.json({ error: 'Le titre est requis' }, { status: 400 })
 
@@ -44,6 +44,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     data: {
       projectId,
       parentId: parentId || null,
+      milestoneId: milestoneId || null,
       title: title.trim(),
       status: status || 'A_FAIRE',
       priority: priority || 'NORMALE',

@@ -90,12 +90,14 @@ export interface Milestone {
   updatedAt: string
   type?: MilestoneType | null
   deliverables?: Deliverable[]
+  tasks?: import('@/types/task').Task[]
 }
 
 export interface Deliverable {
   id: string
   projectId: string
   milestoneId: string | null
+  taskId: string | null
   title: string
   description: string | null
   responsibleId: string | null
@@ -103,6 +105,7 @@ export interface Deliverable {
   status: DeliverableStatus
   createdAt: string
   updatedAt: string
+  task?: { id: string; title: string; status: string } | null
 }
 
 export interface ProjectObjective {

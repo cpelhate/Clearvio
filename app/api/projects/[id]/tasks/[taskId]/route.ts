@@ -25,6 +25,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       ...(body.priority !== undefined && { priority: body.priority }),
       ...(body.dueDate !== undefined && { dueDate: body.dueDate ? new Date(body.dueDate) : null }),
       ...(body.assigneeId !== undefined && { assigneeId: body.assigneeId }),
+      ...(body.milestoneId !== undefined && { milestoneId: body.milestoneId || null }),
       ...(body.order !== undefined && { order: body.order }),
     },
   })
