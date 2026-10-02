@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { checkPermission, ACTIONS } from '@/lib/permissions'
+import { createNotification } from '@/lib/notifications'
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string; taskId: string }> }) {
   const { id: projectId, taskId } = await params
@@ -29,6 +30,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       ...(body.order !== undefined && { order: body.order }),
     },
   })
+
+  if (body.assigneeId && body.assigneeId !== user.id) {
+    await createNotification({
+      userId: body.assigneeId,
+      type: 'TASK_ASSIGNED',
+      title: 'Tâche assignée',
+      message: `Vous avez été assigné à "${task.title}"`,
+      projectId,
+      taskId: taskId,
+    })
+  }
 
   return NextResponse.json(task)
 }

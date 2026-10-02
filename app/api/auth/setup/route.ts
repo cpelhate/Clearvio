@@ -42,5 +42,16 @@ export async function POST(request: NextRequest) {
     },
   })
 
+  const metadata = user.user_metadata ?? {}
+  await prisma.profile.upsert({
+    where: { id: user.id },
+    update: {},
+    create: {
+      id: user.id,
+      fullName: [metadata.first_name, metadata.last_name].filter(Boolean).join(' ') || null,
+      email: user.email,
+    },
+  })
+
   return NextResponse.json({ success: true, organizationId: org.id })
 }

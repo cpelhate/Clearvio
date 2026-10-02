@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/toast'
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type Theme = 'light' | 'dark' | 'system'
-type Tab = 'general' | 'membres' | 'email' | 'droits' | 'jalons'
+type Tab = 'profil' | 'general' | 'membres' | 'email' | 'droits' | 'jalons'
 type OrgRole = 'ADMIN' | 'MEMBRE'
 type ProjectRole = 'CO_RESPONSABLE' | 'CONTRIBUTEUR' | 'OBSERVATEUR'
 
@@ -1490,12 +1490,179 @@ function JalonsTab() {
   )
 }
 
+// ─── Tab: Mon profil ─────────────────────────────────────────────────────────
+
+function ProfilTab({ userEmail }: { userEmail: string | null }) {
+  const { toast } = useToast()
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/me/profile')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setFirstName(data.firstName ?? '')
+          setLastName(data.lastName ?? '')
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    if (newPassword && newPassword !== confirmPassword) {
+      toast('Les mots de passe ne correspondent pas.', 'error')
+      return
+    }
+    setSaving(true)
+    setSuccess(false)
+    try {
+      const body: Record<string, string> = { firstName, lastName }
+      if (newPassword) body.password = newPassword
+      const res = await fetch('/api/me/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (res.ok) {
+        setSuccess(true)
+        setNewPassword('')
+        setConfirmPassword('')
+        toast('Profil mis à jour', 'success')
+      } else {
+        const data = await res.json().catch(() => ({}))
+        toast(data.error ?? 'Erreur lors de la mise à jour.', 'error')
+      }
+    } catch {
+      toast('Erreur réseau.', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const initials = [firstName, lastName]
+    .map(s => s?.trim()?.[0] ?? '')
+    .join('')
+    .toUpperCase() || '?'
+
+  return (
+    <div>
+      <div style={sectionStyle}>
+        <div style={sectionHeaderStyle}>
+          <User size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-tertiary)' }} />
+          <h2 style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>Mon profil</h2>
+        </div>
+        <div style={sectionBodyStyle}>
+          <form onSubmit={handleSave}>
+            <div style={{ display: 'grid', gap: 20 }}>
+              {/* Avatar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{
+                  width: 52, height: 52, borderRadius: '50%',
+                  background: 'var(--color-accent-bg)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 18, fontWeight: 600, color: 'var(--color-accent-default)',
+                  flexShrink: 0,
+                }}>
+                  {initials}
+                </div>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)', margin: 0 }}>
+                    {[firstName, lastName].filter(Boolean).join(' ') || 'Votre nom'}
+                  </p>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)', margin: '2px 0 0' }}>
+                    {userEmail ?? '—'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Name fields */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Prénom</label>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={e => setFirstName(e.target.value)}
+                    placeholder="Prénom"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Nom</label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={e => setLastName(e.target.value)}
+                    placeholder="Nom"
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+
+              {/* Email read-only */}
+              <div>
+                <label style={labelStyle}>Adresse email</label>
+                <input
+                  type="email"
+                  value={userEmail ?? ''}
+                  readOnly
+                  style={{ ...inputStyle, opacity: 0.6, cursor: 'not-allowed' }}
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label style={{ ...labelStyle, marginTop: 4 }}>Nouveau mot de passe</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="Laisser vide pour ne pas changer"
+                  style={inputStyle}
+                />
+              </div>
+              {newPassword && (
+                <div>
+                  <label style={labelStyle}>Confirmer le mot de passe</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    placeholder="Confirmer le mot de passe"
+                    style={inputStyle}
+                  />
+                </div>
+              )}
+
+              {success && (
+                <p style={{ fontSize: 13, color: 'var(--color-success-default)', margin: 0 }}>Profil mis à jour</p>
+              )}
+
+              <div>
+                <button type="submit" disabled={saving} style={{ ...btnPrimaryStyle, opacity: saving ? 0.6 : 1 }}>
+                  {saving ? 'Sauvegarde…' : 'Enregistrer'}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ParametresPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const [activeTab, setActiveTab] = useState<Tab>('general')
+  const [activeTab, setActiveTab] = useState<Tab>('profil')
   const [email, setEmail] = useState<string | null>(null)
   const [orgName, setOrgName] = useState<string | null>(null)
   const [theme, setTheme] = useState<Theme>('system')
@@ -1572,6 +1739,7 @@ export default function ParametresPage() {
   ]
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
+    { key: 'profil', label: 'Mon profil', icon: <User size={14} strokeWidth={1.5} /> },
     { key: 'general', label: 'Général', icon: <User size={14} strokeWidth={1.5} /> },
     { key: 'membres', label: 'Membres & Invitations', icon: <Users size={14} strokeWidth={1.5} /> },
     { key: 'email', label: 'Email', icon: <Mail size={14} strokeWidth={1.5} /> },
@@ -1623,6 +1791,11 @@ export default function ParametresPage() {
             </button>
           ))}
         </div>
+
+        {/* Tab: Mon profil */}
+        {activeTab === 'profil' && (
+          <ProfilTab userEmail={email} />
+        )}
 
         {/* Tab: Général */}
         {activeTab === 'general' && (

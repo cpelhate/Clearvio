@@ -1,7 +1,9 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Search } from 'lucide-react'
 import { NotificationsButton } from '@/components/notifications/notifications-panel'
+import { SearchModal } from '@/components/search/search-modal'
 
 interface HeaderProps {
   title: string
@@ -9,6 +11,19 @@ interface HeaderProps {
 }
 
 export function Header({ title, breadcrumbs = [] }: HeaderProps) {
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
   return (
     <header
       style={{
@@ -38,6 +53,7 @@ export function Header({ title, breadcrumbs = [] }: HeaderProps) {
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <button
+          onClick={() => setSearchOpen(true)}
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)', padding: 8, borderRadius: 'var(--radius-md)' }}
           aria-label="Rechercher"
         >
@@ -45,6 +61,7 @@ export function Header({ title, breadcrumbs = [] }: HeaderProps) {
         </button>
         <NotificationsButton />
       </div>
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
     </header>
   )
 }

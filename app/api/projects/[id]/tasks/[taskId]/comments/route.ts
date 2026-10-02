@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { checkPermission, ACTIONS } from '@/lib/permissions'
+import { createNotification } from '@/lib/notifications'
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string; taskId: string }> }) {
   const supabase = await createClient()
@@ -32,5 +33,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const comment = await prisma.taskComment.create({
     data: { taskId, userId: user.id, content: content.trim() },
   })
+
+  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { assigneeId: true, title: true } })
+  if (task?.assigneeId && task.assigneeId !== user.id) {
+    await createNotification({
+      userId: task.assigneeId,
+      type: 'COMMENT_POSTED',
+      title: 'Nouveau commentaire',
+      message: `Nouveau commentaire sur "${task.title}"`,
+      projectId,
+      taskId,
+    })
+  }
+
   return NextResponse.json(comment, { status: 201 })
 }
