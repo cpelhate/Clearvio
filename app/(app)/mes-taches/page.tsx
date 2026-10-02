@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Header } from '@/components/layout/header'
 import { TaskDrawer } from '@/components/taches/task-drawer'
 import { Task, TaskStatus, TaskPriority, TASK_STATUS_LABELS, TASK_STATUS_COLORS, TASK_PRIORITY_COLORS, TASK_PRIORITY_LABELS } from '@/types/task'
-import { CheckSquare, Circle, AlertTriangle, FolderKanban, Check, Trash2, X, Plus } from 'lucide-react'
+import { CheckSquare, Circle, AlertTriangle, FolderKanban, Check, Trash2, X, Plus, SlidersHorizontal } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useBreakpoint } from '@/lib/hooks/use-breakpoint'
 
@@ -12,18 +12,15 @@ interface TaskWithProject extends Task {
   project: { id: string; name: string; color: string } | null
 }
 
-const STATUS_FILTERS: { value: TaskStatus | 'ALL' | 'ACTIVE'; label: string }[] = [
-  { value: 'ALL', label: 'Toutes' },
-  { value: 'ACTIVE', label: 'Actives' },
-  { value: 'A_FAIRE', label: 'À faire' },
-  { value: 'EN_COURS', label: 'En cours' },
-  { value: 'EN_REVUE', label: 'En révision' },
-  { value: 'BLOQUE', label: 'Bloquées' },
-  { value: 'TERMINE', label: 'Terminées' },
-]
-
 const STATUS_OPTIONS: TaskStatus[] = ['A_FAIRE', 'EN_COURS', 'EN_REVUE', 'TERMINE', 'BLOQUE']
 const PRIORITY_OPTIONS: TaskPriority[] = ['BASSE', 'NORMALE', 'HAUTE', 'CRITIQUE']
+const DUE_OPTIONS = [
+  { value: 'late', label: 'En retard' },
+  { value: 'today', label: "Aujourd'hui" },
+  { value: 'week', label: 'Cette semaine' },
+  { value: 'later', label: 'Plus tard' },
+  { value: 'nodate', label: 'Sans date' },
+]
 
 function isLate(dueDate: string | null, status: TaskStatus) {
   if (!dueDate || status === 'TERMINE') return false
@@ -37,7 +34,7 @@ function formatDate(dateStr: string | null) {
   const diff = Math.floor((d.getTime() - now.getTime()) / 86400000)
   if (diff < -1) return { label: `${Math.abs(diff)} j de retard`, late: true }
   if (diff === -1) return { label: 'Hier', late: true }
-  if (diff === 0) return { label: 'Aujourd\'hui', late: false }
+  if (diff === 0) return { label: "Aujourd'hui", late: false }
   if (diff === 1) return { label: 'Demain', late: false }
   if (diff < 7) return { label: `Dans ${diff} j`, late: false }
   return { label: d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }), late: false }
@@ -47,7 +44,10 @@ export default function MesTachesPage() {
   const bp = useBreakpoint()
   const [tasks, setTasks] = useState<TaskWithProject[]>([])
   const [loading, setLoading] = useState(true)
-  const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL' | 'ACTIVE'>('ACTIVE')
+  const [filterStatuses, setFilterStatuses] = useState<Set<TaskStatus>>(new Set())
+  const [filterPriorities, setFilterPriorities] = useState<Set<TaskPriority>>(new Set())
+  const [filterDue, setFilterDue] = useState<Set<string>>(new Set())
+  const [showFilterPanel, setShowFilterPanel] = useState(false)
   const [groupBy, setGroupBy] = useState<'project' | 'date'>('project')
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [selectedProjectId, setSelectedProjectId] = useState<string>('')
@@ -81,11 +81,37 @@ export default function MesTachesPage() {
     }).catch(() => {})
   }, [])
 
+  const toggleStatus = (s: TaskStatus) => setFilterStatuses(prev => {
+    const next = new Set(prev); if (next.has(s)) next.delete(s); else next.add(s); return next
+  })
+  const togglePriority = (p: TaskPriority) => setFilterPriorities(prev => {
+    const next = new Set(prev); if (next.has(p)) next.delete(p); else next.add(p); return next
+  })
+  const toggleDue = (d: string) => setFilterDue(prev => {
+    const next = new Set(prev); if (next.has(d)) next.delete(d); else next.add(d); return next
+  })
+  const clearFilters = () => { setFilterStatuses(new Set()); setFilterPriorities(new Set()); setFilterDue(new Set()) }
+  const filterCount = filterStatuses.size + filterPriorities.size + filterDue.size
+
   const filtered = useMemo(() => {
-    if (statusFilter === 'ALL') return tasks
-    if (statusFilter === 'ACTIVE') return tasks.filter(t => t.status !== 'TERMINE')
-    return tasks.filter(t => t.status === statusFilter)
-  }, [tasks, statusFilter])
+    let result = tasks
+    if (filterStatuses.size > 0) result = result.filter(t => filterStatuses.has(t.status))
+    if (filterPriorities.size > 0) result = result.filter(t => filterPriorities.has(t.priority))
+    if (filterDue.size > 0) {
+      const now = new Date()
+      const endOfToday = new Date(now); endOfToday.setHours(23, 59, 59, 999)
+      const endOfWeek = new Date(now); endOfWeek.setDate(now.getDate() + 7); endOfWeek.setHours(23, 59, 59, 999)
+      result = result.filter(t => {
+        if (!t.dueDate) return filterDue.has('nodate')
+        const d = new Date(t.dueDate)
+        if (t.status !== 'TERMINE' && d < now) return filterDue.has('late')
+        if (d <= endOfToday) return filterDue.has('today')
+        if (d <= endOfWeek) return filterDue.has('week')
+        return filterDue.has('later')
+      })
+    }
+    return result
+  }, [tasks, filterStatuses, filterPriorities, filterDue])
 
   const byProject = useMemo(() => {
     const map = new Map<string, { project: TaskWithProject['project']; tasks: TaskWithProject[] }>()
@@ -116,7 +142,7 @@ export default function MesTachesPage() {
     }
     return [
       { label: 'En retard', tasks: late, accent: 'var(--color-danger-default)', bg: 'var(--color-danger-bg)' },
-      { label: 'Aujourd\'hui', tasks: today, accent: 'var(--color-warning-default)', bg: 'var(--color-warning-bg)' },
+      { label: "Aujourd'hui", tasks: today, accent: 'var(--color-warning-default)', bg: 'var(--color-warning-bg)' },
       { label: 'Cette semaine', tasks: week, accent: 'var(--color-accent-default)', bg: 'var(--color-accent-bg)' },
       { label: 'Plus tard', tasks: later, accent: 'var(--color-text-tertiary)', bg: 'var(--color-bg-tertiary)' },
       { label: 'Sans date', tasks: noDate, accent: 'var(--color-text-tertiary)', bg: 'var(--color-bg-tertiary)' },
@@ -145,13 +171,9 @@ export default function MesTachesPage() {
     setSelectedTask(null)
   }
 
-  // Bulk selection
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
+      const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next
     })
     setBulkConfirmDelete(false)
   }
@@ -253,7 +275,6 @@ export default function MesTachesPage() {
         onMouseEnter={e => (e.currentTarget.style.background = isSelected ? 'var(--color-accent-bg)' : 'var(--color-bg-tertiary)')}
         onMouseLeave={e => (e.currentTarget.style.background = isSelected ? 'var(--color-accent-bg)' : 'transparent')}
       >
-        {/* Checkbox */}
         <div
           onClick={e => { e.stopPropagation(); toggleSelect(t.id) }}
           style={{
@@ -268,11 +289,7 @@ export default function MesTachesPage() {
         >
           {isSelected && <Check size={10} strokeWidth={2.5} style={{ color: '#fff' }} />}
         </div>
-
-        {/* Status indicator */}
         <div style={{ width: 14, height: 14, borderRadius: '50%', border: `1.5px solid ${TASK_STATUS_COLORS[t.status]}`, background: t.status === 'TERMINE' ? TASK_STATUS_COLORS[t.status] : 'transparent', flexShrink: 0 }} />
-
-        {/* Title */}
         <span style={{
           flex: 1, fontSize: 14, minWidth: 0,
           color: t.status === 'TERMINE' ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)',
@@ -281,8 +298,6 @@ export default function MesTachesPage() {
         }}>
           {t.title}
         </span>
-
-        {/* Project badge */}
         {showProject && t.project && (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -297,22 +312,18 @@ export default function MesTachesPage() {
             {t.project.name}
           </span>
         )}
-
-        {/* Priority */}
         {t.priority !== 'NORMALE' && (
           <span style={{ fontSize: 11, fontWeight: 500, color: TASK_PRIORITY_COLORS[t.priority], flexShrink: 0 }}>
             {TASK_PRIORITY_LABELS[t.priority]}
           </span>
         )}
-
-        {/* Due date */}
         {dateInfo && (
           <span style={{
             fontSize: 11, fontFamily: 'var(--font-mono)',
             color: dateInfo.late ? 'var(--color-danger-default)' : 'var(--color-text-tertiary)',
             flexShrink: 0,
           }}>
-            {dateInfo.late && <AlertTriangle size={10} strokeWidth={2} style={{ display: 'inline', marginRight: 3 }} />}
+            {late && <AlertTriangle size={10} strokeWidth={2} style={{ display: 'inline', marginRight: 3 }} />}
             {dateInfo.label}
           </span>
         )}
@@ -349,9 +360,8 @@ export default function MesTachesPage() {
         </div>
 
         {/* Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-            {/* Select all */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: filterCount > 0 ? 8 : 16, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <div
               onClick={toggleSelectAll}
               title={allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
@@ -367,11 +377,31 @@ export default function MesTachesPage() {
               {someSelected && <div style={{ width: 9, height: 2, background: 'var(--color-accent-default)', borderRadius: 1 }} />}
             </div>
             <div style={{ width: 1, height: 20, background: 'var(--color-border-subtle)', margin: '0 2px' }} />
-            {STATUS_FILTERS.map(f => (
-              <button key={f.value} onClick={() => setStatusFilter(f.value)} style={btnStyle(statusFilter === f.value)}>
-                {f.label}
-              </button>
-            ))}
+            <button
+              onClick={() => setShowFilterPanel(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, height: 30, padding: '0 12px',
+                border: `1px solid ${filterCount > 0 ? 'var(--color-accent-default)' : 'var(--color-border-default)'}`,
+                borderRadius: 20,
+                background: filterCount > 0 ? 'var(--color-accent-bg)' : 'var(--color-bg-secondary)',
+                color: filterCount > 0 ? 'var(--color-accent-default)' : 'var(--color-text-secondary)',
+                fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                fontFamily: 'var(--font-primary)', transition: 'all 120ms',
+              }}
+            >
+              <SlidersHorizontal size={13} strokeWidth={1.5} />
+              Filtres
+              {filterCount > 0 && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: 16, height: 16, borderRadius: '50%',
+                  background: 'var(--color-accent-default)', color: '#fff',
+                  fontSize: 10, fontWeight: 700,
+                }}>
+                  {filterCount}
+                </span>
+              )}
+            </button>
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={() => setGroupBy('project')} style={btnStyle(groupBy === 'project')}>Par projet</button>
@@ -386,49 +416,60 @@ export default function MesTachesPage() {
           </div>
         </div>
 
+        {/* Active filter chips */}
+        {filterCount > 0 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
+            {[...filterStatuses].map(s => (
+              <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 24, padding: '0 10px', borderRadius: 20, background: 'var(--color-accent-bg)', border: '1px solid var(--color-accent-default)', color: 'var(--color-accent-default)', fontSize: 11, fontWeight: 500 }}>
+                {TASK_STATUS_LABELS[s]}
+                <button onClick={() => toggleStatus(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', color: 'inherit' }}><X size={10} strokeWidth={2} /></button>
+              </span>
+            ))}
+            {[...filterPriorities].map(p => (
+              <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 24, padding: '0 10px', borderRadius: 20, background: 'var(--color-accent-bg)', border: '1px solid var(--color-accent-default)', color: 'var(--color-accent-default)', fontSize: 11, fontWeight: 500 }}>
+                {TASK_PRIORITY_LABELS[p]}
+                <button onClick={() => togglePriority(p)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', color: 'inherit' }}><X size={10} strokeWidth={2} /></button>
+              </span>
+            ))}
+            {[...filterDue].map(d => {
+              const opt = DUE_OPTIONS.find(o => o.value === d)
+              return (
+                <span key={d} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 24, padding: '0 10px', borderRadius: 20, background: 'var(--color-accent-bg)', border: '1px solid var(--color-accent-default)', color: 'var(--color-accent-default)', fontSize: 11, fontWeight: 500 }}>
+                  {opt?.label}
+                  <button onClick={() => toggleDue(d)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', color: 'inherit' }}><X size={10} strokeWidth={2} /></button>
+                </span>
+              )
+            })}
+            <button
+              onClick={clearFilters}
+              style={{ height: 24, padding: '0 10px', background: 'none', border: '1px solid var(--color-border-default)', borderRadius: 20, fontSize: 11, color: 'var(--color-text-tertiary)', cursor: 'pointer', fontFamily: 'var(--font-primary)' }}
+            >
+              Tout effacer
+            </button>
+          </div>
+        )}
+
         {showNewTaskForm && (
           <div style={{ marginBottom: 16, padding: '16px', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-lg)', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
             <div style={{ flex: '1 1 180px' }}>
               <label style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Projet</label>
-              <select
-                value={newTaskProjectId}
-                onChange={e => setNewTaskProjectId(e.target.value)}
-                style={{ width: '100%', height: 32, padding: '0 8px', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', fontSize: 13, fontFamily: 'var(--font-primary)' }}
-              >
+              <select value={newTaskProjectId} onChange={e => setNewTaskProjectId(e.target.value)} style={{ width: '100%', height: 32, padding: '0 8px', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', fontSize: 13, fontFamily: 'var(--font-primary)' }}>
                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <div style={{ flex: '2 1 240px' }}>
               <label style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Titre</label>
-              <input
-                value={newTaskTitle}
-                onChange={e => setNewTaskTitle(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && submitNewTask()}
-                placeholder="Titre de la tâche"
-                style={{ width: '100%', height: 32, padding: '0 10px', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', fontSize: 13, fontFamily: 'var(--font-primary)', boxSizing: 'border-box' }}
-              />
+              <input value={newTaskTitle} onChange={e => setNewTaskTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitNewTask()} placeholder="Titre de la tâche" style={{ width: '100%', height: 32, padding: '0 10px', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', fontSize: 13, fontFamily: 'var(--font-primary)', boxSizing: 'border-box' }} />
             </div>
             <div style={{ flex: '0 1 160px' }}>
               <label style={{ display: 'block', fontSize: 11, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Échéance (optionnel)</label>
-              <input
-                type="date"
-                value={newTaskDueDate}
-                onChange={e => setNewTaskDueDate(e.target.value)}
-                style={{ width: '100%', height: 32, padding: '0 8px', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', fontSize: 13, fontFamily: 'var(--font-primary)', boxSizing: 'border-box' }}
-              />
+              <input type="date" value={newTaskDueDate} onChange={e => setNewTaskDueDate(e.target.value)} style={{ width: '100%', height: 32, padding: '0 8px', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', fontSize: 13, fontFamily: 'var(--font-primary)', boxSizing: 'border-box' }} />
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={submitNewTask}
-                disabled={newTaskSubmitting || !newTaskTitle.trim()}
-                style={{ height: 32, padding: '0 14px', background: 'var(--color-accent-default)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-primary)', opacity: newTaskSubmitting || !newTaskTitle.trim() ? 0.5 : 1 }}
-              >
+              <button onClick={submitNewTask} disabled={newTaskSubmitting || !newTaskTitle.trim()} style={{ height: 32, padding: '0 14px', background: 'var(--color-accent-default)', color: '#fff', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-primary)', opacity: newTaskSubmitting || !newTaskTitle.trim() ? 0.5 : 1 }}>
                 {newTaskSubmitting ? '...' : 'Créer'}
               </button>
-              <button
-                onClick={() => { setShowNewTaskForm(false); setNewTaskTitle(''); setNewTaskDueDate('') }}
-                style={{ height: 32, padding: '0 10px', background: 'none', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--color-text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-primary)' }}
-              >
+              <button onClick={() => { setShowNewTaskForm(false); setNewTaskTitle(''); setNewTaskDueDate('') }} style={{ height: 32, padding: '0 10px', background: 'none', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--color-text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-primary)' }}>
                 Annuler
               </button>
             </div>
@@ -444,10 +485,10 @@ export default function MesTachesPage() {
           <div style={{ textAlign: 'center', padding: '64px 24px' }}>
             <CheckSquare size={40} strokeWidth={1} style={{ color: 'var(--color-text-tertiary)', margin: '0 auto 16px' }} />
             <p style={{ fontSize: 16, fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: 6 }}>
-              {statusFilter === 'ACTIVE' ? 'Aucune tâche active' : 'Aucune tâche'}
+              {filterCount > 0 ? 'Aucune tâche trouvée' : 'Aucune tâche'}
             </p>
             <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>
-              {statusFilter === 'ACTIVE' ? 'Toutes vos tâches sont terminées.' : 'Aucune tâche ne correspond à ce filtre.'}
+              {filterCount > 0 ? 'Aucune tâche ne correspond aux filtres actifs.' : "Vous n'avez aucune tâche pour le moment."}
             </p>
           </div>
         ) : groupBy === 'project' ? (
@@ -508,29 +549,15 @@ export default function MesTachesPage() {
             {selectedIds.size} sélectionnée{selectedIds.size > 1 ? 's' : ''}
           </span>
           <div style={{ width: 1, height: 20, background: 'var(--color-border-default)', flexShrink: 0 }} />
-
-          <select
-            value={bulkStatusVal}
-            onChange={e => { const v = e.target.value; if (v) { setBulkStatusVal(''); bulkUpdate({ status: v as TaskStatus }) } }}
-            disabled={bulkLoading}
-            style={selectBtnBase}
-          >
+          <select value={bulkStatusVal} onChange={e => { const v = e.target.value; if (v) { setBulkStatusVal(''); bulkUpdate({ status: v as TaskStatus }) } }} disabled={bulkLoading} style={selectBtnBase}>
             <option value="" disabled>Statut…</option>
             {STATUS_OPTIONS.map(s => <option key={s} value={s}>{TASK_STATUS_LABELS[s]}</option>)}
           </select>
-
-          <select
-            value={bulkPriorityVal}
-            onChange={e => { const v = e.target.value; if (v) { setBulkPriorityVal(''); bulkUpdate({ priority: v as TaskPriority }) } }}
-            disabled={bulkLoading}
-            style={selectBtnBase}
-          >
+          <select value={bulkPriorityVal} onChange={e => { const v = e.target.value; if (v) { setBulkPriorityVal(''); bulkUpdate({ priority: v as TaskPriority }) } }} disabled={bulkLoading} style={selectBtnBase}>
             <option value="" disabled>Priorité…</option>
             {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{TASK_PRIORITY_LABELS[p]}</option>)}
           </select>
-
           <div style={{ width: 1, height: 20, background: 'var(--color-border-default)', flexShrink: 0 }} />
-
           <button
             onClick={bulkDelete}
             disabled={bulkLoading}
@@ -548,19 +575,84 @@ export default function MesTachesPage() {
             <Trash2 size={13} strokeWidth={1.5} />
             {bulkConfirmDelete ? 'Confirmer' : 'Supprimer'}
           </button>
-
           <button
             onClick={clearSelection}
             title="Annuler la sélection"
-            style={{
-              width: 28, height: 28, background: 'none', border: 'none',
-              borderRadius: 'var(--radius-md)', color: 'var(--color-text-tertiary)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
+            style={{ width: 28, height: 28, background: 'none', border: 'none', borderRadius: 'var(--radius-md)', color: 'var(--color-text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <X size={14} strokeWidth={1.5} />
           </button>
         </div>
+      )}
+
+      {/* Filter flyout panel */}
+      {showFilterPanel && (
+        <>
+          <div onClick={() => setShowFilterPanel(false)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.15)' }} />
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0, width: 272,
+            zIndex: 201, background: 'var(--color-bg-elevated)',
+            borderLeft: '1px solid var(--color-border-default)',
+            boxShadow: '-4px 0 24px rgba(0,0,0,0.08)',
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--color-border-subtle)' }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>Filtres</span>
+              <button onClick={() => setShowFilterPanel(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)', display: 'flex', alignItems: 'center' }}>
+                <X size={16} strokeWidth={1.5} />
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflow: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-tertiary)', marginBottom: 10 }}>Statut</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {STATUS_OPTIONS.map(s => (
+                    <label key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={filterStatuses.has(s)} onChange={() => toggleStatus(s)} style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-accent-default)' }} />
+                      <span style={{ fontSize: 13, color: 'var(--color-text-primary)' }}>{TASK_STATUS_LABELS[s]}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-tertiary)', marginBottom: 10 }}>Priorité</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {PRIORITY_OPTIONS.map(p => (
+                    <label key={p} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={filterPriorities.has(p)} onChange={() => togglePriority(p)} style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-accent-default)' }} />
+                      <span style={{ fontSize: 13, color: 'var(--color-text-primary)' }}>{TASK_PRIORITY_LABELS[p]}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-tertiary)', marginBottom: 10 }}>Échéance</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {DUE_OPTIONS.map(o => (
+                    <label key={o.value} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={filterDue.has(o.value)} onChange={() => toggleDue(o.value)} style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-accent-default)' }} />
+                      <span style={{ fontSize: 13, color: 'var(--color-text-primary)' }}>{o.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {filterCount > 0 && (
+              <div style={{ padding: '12px 20px', borderTop: '1px solid var(--color-border-subtle)' }}>
+                <button
+                  onClick={clearFilters}
+                  style={{ width: '100%', height: 34, background: 'none', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--color-text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-primary)' }}
+                >
+                  Réinitialiser ({filterCount})
+                </button>
+              </div>
+            )}
+          </div>
+        </>
       )}
     </>
   )

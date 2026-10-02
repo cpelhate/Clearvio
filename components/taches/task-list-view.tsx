@@ -1,13 +1,17 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, ChevronRight, ChevronDown, Flag, Check, Trash2, X } from 'lucide-react'
-import { Task, TaskStatus, TaskPriority, TASK_STATUS_COLORS, TASK_STATUS_BG, TASK_STATUS_LABELS, TASK_PRIORITY_COLORS, TASK_PRIORITY_LABELS } from '@/types/task'
+import { useState, useEffect } from 'react'
+import { Plus, ChevronRight, ChevronDown, Flag, Check, Trash2, X, SlidersHorizontal } from 'lucide-react'
+import { Task, TaskStatus, TaskPriority, TASK_STATUS_COLORS, TASK_STATUS_LABELS, TASK_PRIORITY_COLORS, TASK_PRIORITY_LABELS } from '@/types/task'
 import { TaskDrawer } from './task-drawer'
+
+interface MemberInfo { userId: string; name: string | null }
+interface MilestoneInfo { id: string; title: string }
 
 interface TaskListViewProps {
   tasks: Task[]
   projectId: string
+  members?: MemberInfo[]
   onCreateTask: (data: { title: string; parentId?: string }) => Promise<unknown>
   onUpdateTask: (id: string, data: Partial<Task>) => Promise<unknown>
   onDeleteTask: (id: string) => Promise<unknown>
@@ -15,6 +19,13 @@ interface TaskListViewProps {
 
 const STATUS_OPTIONS: TaskStatus[] = ['A_FAIRE', 'EN_COURS', 'EN_REVUE', 'TERMINE', 'BLOQUE']
 const PRIORITY_OPTIONS: TaskPriority[] = ['BASSE', 'NORMALE', 'HAUTE', 'CRITIQUE']
+const DUE_OPTIONS = [
+  { value: 'late', label: 'En retard' },
+  { value: 'today', label: "Aujourd'hui" },
+  { value: 'week', label: 'Cette semaine' },
+  { value: 'later', label: 'Plus tard' },
+  { value: 'nodate', label: 'Sans date' },
+]
 
 function buildTree(tasks: Task[]): Task[] {
   const map = new Map<string, Task & { children: Task[] }>()
@@ -64,8 +75,6 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
   const isSelected = selectedIds.has(task.id)
   const showCheckbox = hovered || isSelected || selectedIds.size > 0
 
-  const rowBg = isSelected ? 'var(--color-accent-bg)' : 'transparent'
-
   return (
     <>
       <div
@@ -74,12 +83,11 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
           height: 40, paddingLeft: 16 + depth * 24, paddingRight: 16,
           borderBottom: '1px solid var(--color-border-subtle)',
           cursor: 'pointer', gap: 8,
-          background: rowBg, transition: 'background 80ms',
+          background: isSelected ? 'var(--color-accent-bg)' : 'transparent', transition: 'background 80ms',
         }}
         onMouseEnter={e => { setHovered(true); if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'var(--color-bg-secondary)' }}
         onMouseLeave={e => { setHovered(false); (e.currentTarget as HTMLDivElement).style.background = isSelected ? 'var(--color-accent-bg)' : 'transparent' }}
       >
-        {/* Checkbox */}
         <div
           onClick={e => { e.stopPropagation(); onToggleSelect(task.id) }}
           style={{
@@ -94,7 +102,6 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
           {isSelected && <Check size={10} strokeWidth={2.5} style={{ color: '#fff' }} />}
         </div>
 
-        {/* Expand toggle */}
         <button
           onClick={e => { e.stopPropagation(); setExpanded(!expanded) }}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--color-text-tertiary)', flexShrink: 0, opacity: hasChildren ? 1 : 0, pointerEvents: hasChildren ? 'auto' : 'none' }}
@@ -102,7 +109,6 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
           {expanded ? <ChevronDown size={14} strokeWidth={1.5} /> : <ChevronRight size={14} strokeWidth={1.5} />}
         </button>
 
-        {/* Status dot */}
         <button
           onClick={e => {
             e.stopPropagation()
@@ -119,7 +125,6 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
           }}
         />
 
-        {/* Title */}
         <span
           onClick={() => onSelect(task)}
           style={{
@@ -132,19 +137,16 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
           {task.title}
         </span>
 
-        {/* Priority */}
         {task.priority !== 'NORMALE' && (
           <Flag size={13} strokeWidth={1.5} style={{ color: TASK_PRIORITY_COLORS[task.priority], flexShrink: 0 }} />
         )}
 
-        {/* Date */}
         {task.dueDate && (
           <span style={{ fontSize: 12, color: overdue ? 'var(--color-danger-default)' : 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
             {formatDate(task.dueDate)}
           </span>
         )}
 
-        {/* Add subtask */}
         {depth < 2 && (
           <button
             onClick={e => { e.stopPropagation(); onCreateChild(task.id) }}
@@ -158,7 +160,6 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
         )}
       </div>
 
-      {/* Inline add child */}
       {addingChildOf === task.id && (
         <div style={{
           display: 'flex', alignItems: 'center', height: 40,
@@ -178,16 +179,12 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
               if (e.key === 'Escape') { onCancelAdd(); setNewTitle('') }
             }}
             placeholder="Nom de la sous-tâche..."
-            style={{
-              flex: 1, background: 'none', border: 'none', outline: 'none',
-              fontSize: 14, color: 'var(--color-text-primary)', fontFamily: 'var(--font-primary)',
-            }}
+            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 14, color: 'var(--color-text-primary)', fontFamily: 'var(--font-primary)' }}
           />
-          <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>Entrée pour valider · Échap pour annuler</span>
+          <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>Entrée · Échap</span>
         </div>
       )}
 
-      {/* Children */}
       {expanded && task.children?.map(child => (
         <TaskRow
           key={child.id}
@@ -207,7 +204,7 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
   )
 }
 
-export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onDeleteTask }: TaskListViewProps) {
+export function TaskListView({ tasks, projectId, members = [], onCreateTask, onUpdateTask, onDeleteTask }: TaskListViewProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [addingChildOf, setAddingChildOf] = useState<string | null>(null)
   const [newRootTitle, setNewRootTitle] = useState('')
@@ -217,25 +214,70 @@ export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onD
   const [bulkLoading, setBulkLoading] = useState(false)
   const [bulkStatusVal, setBulkStatusVal] = useState('')
   const [bulkPriorityVal, setBulkPriorityVal] = useState('')
+  // Filter state
+  const [filterStatuses, setFilterStatuses] = useState<Set<TaskStatus>>(new Set())
+  const [filterPriorities, setFilterPriorities] = useState<Set<TaskPriority>>(new Set())
+  const [filterDue, setFilterDue] = useState<Set<string>>(new Set())
+  const [filterAssignees, setFilterAssignees] = useState<Set<string>>(new Set())
+  const [filterMilestones, setFilterMilestones] = useState<Set<string>>(new Set())
+  const [showFilterPanel, setShowFilterPanel] = useState(false)
+  const [milestones, setMilestones] = useState<MilestoneInfo[]>([])
 
-  const tree = buildTree(tasks) as (Task & { children: Task[] })[]
+  useEffect(() => {
+    fetch(`/api/projects/${projectId}/milestones`)
+      .then(r => r.ok ? r.json() : [])
+      .then((ms: { id: string; title: string }[]) => setMilestones(ms.map(m => ({ id: m.id, title: m.title }))))
+      .catch(() => {})
+  }, [projectId])
+
+  const toggleStatus = (s: TaskStatus) => setFilterStatuses(prev => { const n = new Set(prev); n.has(s) ? n.delete(s) : n.add(s); return n })
+  const togglePriority = (p: TaskPriority) => setFilterPriorities(prev => { const n = new Set(prev); n.has(p) ? n.delete(p) : n.add(p); return n })
+  const toggleDue = (d: string) => setFilterDue(prev => { const n = new Set(prev); n.has(d) ? n.delete(d) : n.add(d); return n })
+  const toggleAssignee = (id: string) => setFilterAssignees(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const toggleMilestone = (id: string) => setFilterMilestones(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const clearFilters = () => { setFilterStatuses(new Set()); setFilterPriorities(new Set()); setFilterDue(new Set()); setFilterAssignees(new Set()); setFilterMilestones(new Set()) }
+  const filterCount = filterStatuses.size + filterPriorities.size + filterDue.size + filterAssignees.size + filterMilestones.size
+
+  // Unique assignees present in tasks
+  const taskAssignees = [...new Set(tasks.filter(t => t.assigneeId).map(t => t.assigneeId!))]
+    .map(userId => ({ userId, name: members.find(m => m.userId === userId)?.name ?? null }))
+
+  // Apply filters
+  const filteredTasks = (() => {
+    let result = tasks
+    if (filterStatuses.size > 0) result = result.filter(t => filterStatuses.has(t.status))
+    if (filterPriorities.size > 0) result = result.filter(t => filterPriorities.has(t.priority))
+    if (filterAssignees.size > 0) result = result.filter(t => t.assigneeId != null && filterAssignees.has(t.assigneeId))
+    if (filterMilestones.size > 0) result = result.filter(t => t.milestoneId != null && filterMilestones.has(t.milestoneId))
+    if (filterDue.size > 0) {
+      const now = new Date()
+      const endOfToday = new Date(now); endOfToday.setHours(23, 59, 59, 999)
+      const endOfWeek = new Date(now); endOfWeek.setDate(now.getDate() + 7); endOfWeek.setHours(23, 59, 59, 999)
+      result = result.filter(t => {
+        if (!t.dueDate) return filterDue.has('nodate')
+        const d = new Date(t.dueDate)
+        if (t.status !== 'TERMINE' && d < now) return filterDue.has('late')
+        if (d <= endOfToday) return filterDue.has('today')
+        if (d <= endOfWeek) return filterDue.has('week')
+        return filterDue.has('later')
+      })
+    }
+    return result
+  })()
+
+  const tree = buildTree(filteredTasks) as (Task & { children: Task[] })[]
 
   const toggleSelect = (id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+    setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
     setBulkConfirmDelete(false)
   }
 
-  const allSelected = tasks.length > 0 && tasks.every(t => selectedIds.has(t.id))
+  const allSelected = filteredTasks.length > 0 && filteredTasks.every(t => selectedIds.has(t.id))
   const someSelected = !allSelected && selectedIds.size > 0
 
   const toggleSelectAll = () => {
     if (allSelected || someSelected) setSelectedIds(new Set())
-    else setSelectedIds(new Set(tasks.map(t => t.id)))
+    else setSelectedIds(new Set(filteredTasks.map(t => t.id)))
     setBulkConfirmDelete(false)
   }
 
@@ -244,23 +286,20 @@ export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onD
   const bulkStatus = async (status: TaskStatus) => {
     setBulkLoading(true)
     await Promise.all([...selectedIds].map(id => onUpdateTask(id, { status })))
-    setBulkLoading(false)
-    clearSelection()
+    setBulkLoading(false); clearSelection()
   }
 
   const bulkPriority = async (priority: TaskPriority) => {
     setBulkLoading(true)
     await Promise.all([...selectedIds].map(id => onUpdateTask(id, { priority })))
-    setBulkLoading(false)
-    clearSelection()
+    setBulkLoading(false); clearSelection()
   }
 
   const bulkDelete = async () => {
     if (!bulkConfirmDelete) { setBulkConfirmDelete(true); return }
     setBulkLoading(true)
     for (const id of [...selectedIds]) await onDeleteTask(id)
-    setBulkLoading(false)
-    clearSelection()
+    setBulkLoading(false); clearSelection()
   }
 
   const handleStatusChange = async (id: string, status: TaskStatus) => {
@@ -269,15 +308,13 @@ export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onD
   }
 
   const handleAddChild = async (parentId: string, title: string) => {
-    await onCreateTask({ title, parentId })
-    setAddingChildOf(null)
+    await onCreateTask({ title, parentId }); setAddingChildOf(null)
   }
 
   const handleAddRoot = async () => {
     if (!newRootTitle.trim()) return
     await onCreateTask({ title: newRootTitle.trim() })
-    setNewRootTitle('')
-    setAddingRoot(false)
+    setNewRootTitle(''); setAddingRoot(false)
   }
 
   const selectBtnBase: React.CSSProperties = {
@@ -289,12 +326,12 @@ export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onD
 
   return (
     <div style={{ display: 'flex', height: '100%', minHeight: 400 }}>
-      {/* Table */}
-      <div style={{ flex: 1, overflow: 'hidden' }}>
-        {/* Header */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+
+        {/* Filter bar */}
         <div style={{
-          display: 'flex', alignItems: 'center', height: 36, gap: 8,
-          paddingLeft: 16, paddingRight: 16,
+          display: 'flex', alignItems: 'center', gap: 8,
+          height: 36, paddingLeft: 16, paddingRight: 16,
           background: 'var(--color-bg-secondary)',
           borderBottom: '1px solid var(--color-border-default)',
         }}>
@@ -305,8 +342,7 @@ export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onD
               width: 15, height: 15, borderRadius: 3, flexShrink: 0,
               border: `1.5px solid ${allSelected ? 'var(--color-accent-default)' : 'var(--color-border-default)'}`,
               background: allSelected ? 'var(--color-accent-default)' : 'transparent',
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 100ms, border-color 100ms',
             }}
           >
@@ -318,28 +354,78 @@ export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onD
           <span style={{ flex: 1, fontSize: 12, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-tertiary)' }}>
             Tâche
           </span>
-          <span style={{ fontSize: 12, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-tertiary)', width: 80, textAlign: 'right' }}>
+          {/* Active filter chips inline */}
+          {filterCount > 0 && (
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              {[...filterStatuses].map(s => (
+                <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, height: 20, padding: '0 8px', borderRadius: 20, background: 'var(--color-accent-bg)', border: '1px solid var(--color-accent-default)', color: 'var(--color-accent-default)', fontSize: 10, fontWeight: 500 }}>
+                  {TASK_STATUS_LABELS[s]}
+                  <button onClick={() => toggleStatus(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', color: 'inherit' }}><X size={9} strokeWidth={2} /></button>
+                </span>
+              ))}
+              {[...filterPriorities].map(p => (
+                <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, height: 20, padding: '0 8px', borderRadius: 20, background: 'var(--color-accent-bg)', border: '1px solid var(--color-accent-default)', color: 'var(--color-accent-default)', fontSize: 10, fontWeight: 500 }}>
+                  {TASK_PRIORITY_LABELS[p]}
+                  <button onClick={() => togglePriority(p)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', color: 'inherit' }}><X size={9} strokeWidth={2} /></button>
+                </span>
+              ))}
+              {filterCount > filterStatuses.size + filterPriorities.size && (
+                <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>+{filterCount - filterStatuses.size - filterPriorities.size}</span>
+              )}
+              <button onClick={clearFilters} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)', borderRadius: 'var(--radius-sm)' }} title="Effacer les filtres">
+                <X size={11} strokeWidth={2} />
+              </button>
+            </div>
+          )}
+          <button
+            onClick={() => setShowFilterPanel(v => !v)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5, height: 24, padding: '0 10px',
+              border: `1px solid ${filterCount > 0 ? 'var(--color-accent-default)' : 'var(--color-border-default)'}`,
+              borderRadius: 20,
+              background: filterCount > 0 ? 'var(--color-accent-bg)' : 'transparent',
+              color: filterCount > 0 ? 'var(--color-accent-default)' : 'var(--color-text-tertiary)',
+              fontSize: 11, fontWeight: 500, cursor: 'pointer',
+              fontFamily: 'var(--font-primary)', flexShrink: 0,
+            }}
+          >
+            <SlidersHorizontal size={11} strokeWidth={1.5} />
+            Filtres
+            {filterCount > 0 && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 14, height: 14, borderRadius: '50%', background: 'var(--color-accent-default)', color: '#fff', fontSize: 9, fontWeight: 700 }}>
+                {filterCount}
+              </span>
+            )}
+          </button>
+          <span style={{ fontSize: 12, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-tertiary)', width: 80, textAlign: 'right', flexShrink: 0 }}>
             Échéance
           </span>
         </div>
 
         {/* Rows */}
-        <div>
-          {tasks.length === 0 && !addingRoot ? (
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          {filteredTasks.length === 0 && !addingRoot ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 12 }}>
-              <p style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary)' }}>Aucune tâche</p>
-              <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>Commencez par créer votre première tâche.</p>
-              <button
-                onClick={() => setAddingRoot(true)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px',
-                  background: 'var(--color-accent-default)', border: 'none',
-                  borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500,
-                  cursor: 'pointer', color: '#fff',
-                }}
-              >
-                <Plus size={14} strokeWidth={1.5} /> Nouvelle tâche
-              </button>
+              {filterCount > 0 ? (
+                <>
+                  <p style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary)' }}>Aucune tâche trouvée</p>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>Aucune tâche ne correspond aux filtres actifs.</p>
+                  <button onClick={clearFilters} style={{ height: 32, padding: '0 14px', background: 'none', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--color-text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-primary)' }}>
+                    Effacer les filtres
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary)' }}>Aucune tâche</p>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>Commencez par créer votre première tâche.</p>
+                  <button
+                    onClick={() => setAddingRoot(true)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px', background: 'var(--color-accent-default)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', color: '#fff' }}
+                  >
+                    <Plus size={14} strokeWidth={1.5} /> Nouvelle tâche
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             <>
@@ -359,7 +445,6 @@ export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onD
                 />
               ))}
 
-              {/* Inline add root */}
               {addingRoot ? (
                 <div style={{
                   display: 'flex', alignItems: 'center', height: 40,
@@ -404,7 +489,7 @@ export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onD
         </div>
       </div>
 
-      {/* Drawer */}
+      {/* Task drawer */}
       <TaskDrawer
         task={selectedTask}
         projectId={projectId}
@@ -429,29 +514,15 @@ export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onD
             {selectedIds.size} sélectionnée{selectedIds.size > 1 ? 's' : ''}
           </span>
           <div style={{ width: 1, height: 20, background: 'var(--color-border-default)', flexShrink: 0 }} />
-
-          <select
-            value={bulkStatusVal}
-            onChange={e => { const v = e.target.value; if (v) { setBulkStatusVal(''); bulkStatus(v as TaskStatus) } }}
-            disabled={bulkLoading}
-            style={selectBtnBase}
-          >
+          <select value={bulkStatusVal} onChange={e => { const v = e.target.value; if (v) { setBulkStatusVal(''); bulkStatus(v as TaskStatus) } }} disabled={bulkLoading} style={selectBtnBase}>
             <option value="" disabled>Statut…</option>
             {STATUS_OPTIONS.map(s => <option key={s} value={s}>{TASK_STATUS_LABELS[s]}</option>)}
           </select>
-
-          <select
-            value={bulkPriorityVal}
-            onChange={e => { const v = e.target.value; if (v) { setBulkPriorityVal(''); bulkPriority(v as TaskPriority) } }}
-            disabled={bulkLoading}
-            style={selectBtnBase}
-          >
+          <select value={bulkPriorityVal} onChange={e => { const v = e.target.value; if (v) { setBulkPriorityVal(''); bulkPriority(v as TaskPriority) } }} disabled={bulkLoading} style={selectBtnBase}>
             <option value="" disabled>Priorité…</option>
             {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{TASK_PRIORITY_LABELS[p]}</option>)}
           </select>
-
           <div style={{ width: 1, height: 20, background: 'var(--color-border-default)', flexShrink: 0 }} />
-
           <button
             onClick={bulkDelete}
             disabled={bulkLoading}
@@ -469,19 +540,105 @@ export function TaskListView({ tasks, projectId, onCreateTask, onUpdateTask, onD
             <Trash2 size={13} strokeWidth={1.5} />
             {bulkConfirmDelete ? 'Confirmer' : 'Supprimer'}
           </button>
-
-          <button
-            onClick={clearSelection}
-            title="Annuler la sélection"
-            style={{
-              width: 28, height: 28, background: 'none', border: 'none',
-              borderRadius: 'var(--radius-md)', color: 'var(--color-text-tertiary)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
+          <button onClick={clearSelection} title="Annuler la sélection" style={{ width: 28, height: 28, background: 'none', border: 'none', borderRadius: 'var(--radius-md)', color: 'var(--color-text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={14} strokeWidth={1.5} />
           </button>
         </div>
+      )}
+
+      {/* Filter flyout panel */}
+      {showFilterPanel && (
+        <>
+          <div onClick={() => setShowFilterPanel(false)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.15)' }} />
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0, width: 272,
+            zIndex: 201, background: 'var(--color-bg-elevated)',
+            borderLeft: '1px solid var(--color-border-default)',
+            boxShadow: '-4px 0 24px rgba(0,0,0,0.08)',
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--color-border-subtle)' }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>Filtres</span>
+              <button onClick={() => setShowFilterPanel(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)', display: 'flex', alignItems: 'center' }}>
+                <X size={16} strokeWidth={1.5} />
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflow: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-tertiary)', marginBottom: 10 }}>Statut</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {STATUS_OPTIONS.map(s => (
+                    <label key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={filterStatuses.has(s)} onChange={() => toggleStatus(s)} style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-accent-default)' }} />
+                      <span style={{ fontSize: 13, color: 'var(--color-text-primary)' }}>{TASK_STATUS_LABELS[s]}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-tertiary)', marginBottom: 10 }}>Priorité</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {PRIORITY_OPTIONS.map(p => (
+                    <label key={p} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={filterPriorities.has(p)} onChange={() => togglePriority(p)} style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-accent-default)' }} />
+                      <span style={{ fontSize: 13, color: 'var(--color-text-primary)' }}>{TASK_PRIORITY_LABELS[p]}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-tertiary)', marginBottom: 10 }}>Échéance</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {DUE_OPTIONS.map(o => (
+                    <label key={o.value} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={filterDue.has(o.value)} onChange={() => toggleDue(o.value)} style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-accent-default)' }} />
+                      <span style={{ fontSize: 13, color: 'var(--color-text-primary)' }}>{o.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {taskAssignees.length > 0 && (
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-tertiary)', marginBottom: 10 }}>Assigné à</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {taskAssignees.map(a => (
+                      <label key={a.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={filterAssignees.has(a.userId)} onChange={() => toggleAssignee(a.userId)} style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-accent-default)' }} />
+                        <span style={{ fontSize: 13, color: 'var(--color-text-primary)' }}>{a.name ?? a.userId.slice(0, 8) + '…'}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {milestones.length > 0 && (
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-text-tertiary)', marginBottom: 10 }}>Jalon</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {milestones.map(m => (
+                      <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={filterMilestones.has(m.id)} onChange={() => toggleMilestone(m.id)} style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--color-accent-default)' }} />
+                        <span style={{ fontSize: 13, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {filterCount > 0 && (
+              <div style={{ padding: '12px 20px', borderTop: '1px solid var(--color-border-subtle)' }}>
+                <button onClick={clearFilters} style={{ width: '100%', height: 34, background: 'none', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--color-text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-primary)' }}>
+                  Réinitialiser ({filterCount})
+                </button>
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   )

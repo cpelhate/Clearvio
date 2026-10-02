@@ -277,6 +277,7 @@ function TabContent({ tab, projectId, members }: { tab: string; projectId: strin
         <TaskListView
           tasks={tasks}
           projectId={projectId}
+          members={(members as (ProjectMember & { user?: { name: string | null } })[]).map(m => ({ userId: m.userId, name: m.user?.name ?? null }))}
           onCreateTask={createTask}
           onUpdateTask={updateTask}
           onDeleteTask={deleteTask}
