@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/header'
 import { Bell, AlertTriangle, Clock, AlertCircle, CheckCheck } from 'lucide-react'
-import type { Notification } from '@/app/api/notifications/route'
+import type { DbNotification as Notification } from '@/app/api/notifications/route'
 
 const STORAGE_KEY = 'clearvio_notifications_seen_at'
 
