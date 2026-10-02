@@ -16,15 +16,22 @@ export async function GET() {
     orderBy: { joinedAt: 'asc' },
   })
 
-  // Récupérer les emails via Supabase Admin API n'est pas disponible côté client
-  // On retourne les données disponibles
-  return NextResponse.json(members.map(m => ({
-    id: m.id,
-    userId: m.userId,
-    role: m.role,
-    joinedAt: m.joinedAt,
-    isCurrentUser: m.userId === user.id,
-  })))
+  const userIds = members.map(m => m.userId)
+  const profiles = await prisma.profile.findMany({ where: { id: { in: userIds } } })
+  const profileMap = Object.fromEntries(profiles.map(p => [p.id, p]))
+
+  return NextResponse.json(members.map(m => {
+    const profile = profileMap[m.userId]
+    return {
+      id: m.id,
+      userId: m.userId,
+      role: m.role,
+      joinedAt: m.joinedAt,
+      isCurrentUser: m.userId === user.id,
+      name: profile?.fullName ?? null,
+      email: profile?.email ?? null,
+    }
+  }))
 }
 
 export async function PATCH(req: NextRequest) {

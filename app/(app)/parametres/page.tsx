@@ -69,9 +69,13 @@ function applyTheme(next: Theme) {
   }
 }
 
-function getInitials(userId: string): string {
-  if (!userId || userId.length < 2) return '??'
-  return userId.slice(-2).toUpperCase()
+function getInitials(name: string | null | undefined, fallback: string): string {
+  if (name) {
+    const parts = name.trim().split(/\s+/)
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    return name.slice(0, 2).toUpperCase()
+  }
+  return fallback.slice(-2).toUpperCase()
 }
 
 function formatDate(iso: string): string {
@@ -595,15 +599,18 @@ function MembresTab({ currentUserId }: { currentUserId: string | null }) {
                       flexShrink: 0,
                       letterSpacing: '0.04em',
                     }}>
-                      {getInitials(member.userId ?? member.id)}
+                      {getInitials(member.name, member.userId ?? member.id)}
                     </div>
 
                     {/* Info */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 12, color: 'var(--color-text-primary)', fontFamily: 'var(--font-mono)' } as React.CSSProperties}>
-                          {member.email ?? member.userId ?? member.id}
+                        <span style={{ fontSize: 13, color: 'var(--color-text-primary)', fontWeight: 500 }}>
+                          {member.name ?? member.email ?? member.userId ?? member.id}
                         </span>
+                        {member.email && member.name && (
+                          <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>{member.email}</span>
+                        )}
                         {isCurrentUser && (
                           <span style={{
                             fontSize: 10,
