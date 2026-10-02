@@ -6,6 +6,7 @@ import { TaskDrawer } from '@/components/taches/task-drawer'
 import { Task, TaskStatus, TaskPriority, TASK_STATUS_LABELS, TASK_STATUS_COLORS, TASK_PRIORITY_COLORS, TASK_PRIORITY_LABELS } from '@/types/task'
 import { CheckSquare, Circle, AlertTriangle, FolderKanban, Check, Trash2, X, Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useBreakpoint } from '@/lib/hooks/use-breakpoint'
 
 interface TaskWithProject extends Task {
   project: { id: string; name: string; color: string } | null
@@ -43,6 +44,7 @@ function formatDate(dateStr: string | null) {
 }
 
 export default function MesTachesPage() {
+  const bp = useBreakpoint()
   const [tasks, setTasks] = useState<TaskWithProject[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL' | 'ACTIVE'>('ACTIVE')
@@ -318,10 +320,13 @@ export default function MesTachesPage() {
     )
   }
 
+  const pagePadding = bp === 'mobile' ? '16px' : 'var(--space-10)'
+  const bulkBottom = bp === 'mobile' ? 'calc(56px + 16px + env(safe-area-inset-bottom, 0px))' : '24px'
+
   return (
     <>
       <Header title="Mes tâches" />
-      <div style={{ padding: 'var(--space-10)' }}>
+      <div style={{ padding: pagePadding }}>
 
         {/* KPI row */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
@@ -490,7 +495,7 @@ export default function MesTachesPage() {
       {/* Bulk action bar */}
       {selectedIds.size > 0 && (
         <div style={{
-          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          position: 'fixed', bottom: bulkBottom, left: '50%', transform: 'translateX(-50%)',
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '8px 12px',
           background: 'var(--color-bg-elevated)',

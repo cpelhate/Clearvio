@@ -23,6 +23,7 @@ import { DependenciesView } from '@/components/dependencies/dependencies-view'
 import { CalendarView } from '@/components/calendrier/calendar-view'
 import { ProjectMember } from '@/types/project'
 import { Milestone } from '@/types/milestone'
+import { useBreakpoint } from '@/lib/hooks/use-breakpoint'
 
 const tabs = [
   { id: 'liste', label: 'Liste', icon: LayoutList },
@@ -46,6 +47,7 @@ function formatDate(dateStr: string | null): string {
 export default function ProjetPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const bp = useBreakpoint()
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('liste')
@@ -79,6 +81,9 @@ export default function ProjetPage() {
     </>
   )
 
+  const pagePadding = bp === 'mobile' ? '16px 16px 0' : 'var(--space-10) var(--space-10) 0'
+  const contentPadding = bp === 'mobile' ? '16px' : 'var(--space-8) var(--space-10)'
+
   return (
     <>
       <Header
@@ -86,7 +91,7 @@ export default function ProjetPage() {
         breadcrumbs={[{ label: 'Projets', href: '/projets' }]}
       />
 
-      <div style={{ padding: 'var(--space-10) var(--space-10) 0' }}>
+      <div style={{ padding: pagePadding }}>
         {/* Retour */}
         <button
           onClick={() => router.push('/projets')}
@@ -105,12 +110,12 @@ export default function ProjetPage() {
           border: '1px solid var(--color-border-subtle)',
           borderRadius: 'var(--radius-lg)',
           borderLeft: `4px solid ${project.color}`,
-          padding: 24, marginBottom: 0,
+          padding: bp === 'mobile' ? 16 : 24, marginBottom: 0,
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                <h1 style={{ fontSize: 20, fontWeight: 500, color: 'var(--color-text-primary)', letterSpacing: '-0.01em' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: bp === 'mobile' ? 'wrap' : 'nowrap' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
+                <h1 style={{ fontSize: bp === 'mobile' ? 17 : 20, fontWeight: 500, color: 'var(--color-text-primary)', letterSpacing: '-0.01em', minWidth: 0 }}>
                   {project.name}
                 </h1>
                 <StatusBadge status={project.status} />
@@ -120,7 +125,7 @@ export default function ProjetPage() {
                   {project.description}
                 </p>
               )}
-              <div style={{ display: 'flex', gap: 24, marginTop: 16 }}>
+              <div style={{ display: 'flex', gap: bp === 'mobile' ? 16 : 24, marginTop: 16, flexWrap: 'wrap' }}>
                 {project.startDate && (
                   <div>
                     <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 2 }}>
@@ -159,7 +164,7 @@ export default function ProjetPage() {
                 </div>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
               <Link
                 href={`/projets/${id}/rapport`}
                 target="_blank"
@@ -170,7 +175,7 @@ export default function ProjetPage() {
                   color: 'var(--color-text-secondary)', textDecoration: 'none',
                 }}
               >
-                <FileText size={14} strokeWidth={1.5} /> Rapport
+                <FileText size={14} strokeWidth={1.5} />{bp !== 'mobile' && ' Rapport'}
               </Link>
               <button
                 onClick={() => setShowSettings(true)}
@@ -180,7 +185,7 @@ export default function ProjetPage() {
                   borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer',
                   color: 'var(--color-text-secondary)',
                 }}>
-                <Settings2 size={14} strokeWidth={1.5} /> Paramètres
+                <Settings2 size={14} strokeWidth={1.5} />{bp !== 'mobile' && ' Paramètres'}
               </button>
             </div>
           </div>
@@ -234,7 +239,7 @@ export default function ProjetPage() {
       )}
 
       {/* Contenu de l'onglet */}
-      <div style={{ padding: 'var(--space-8) var(--space-10)' }}>
+      <div style={{ padding: contentPadding }}>
         <TabContent tab={activeTab} projectId={id} members={project.members} />
       </div>
     </>

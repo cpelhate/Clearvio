@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/header'
 import { Bell, AlertTriangle, Clock, AlertCircle, CheckCheck, MessageSquare, UserCheck } from 'lucide-react'
 import type { DbNotification, ComputedAlert } from '@/app/api/notifications/route'
+import { useBreakpoint } from '@/lib/hooks/use-breakpoint'
 
 type AnyNotif = DbNotification | ComputedAlert
 
@@ -52,6 +53,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default function NotificationsPage() {
   const router = useRouter()
+  const bp = useBreakpoint()
   const [items, setItems] = useState<AnyNotif[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -104,7 +106,7 @@ export default function NotificationsPage() {
   return (
     <>
       <Header title="Notifications" />
-      <div style={{ padding: 'var(--space-10)', maxWidth: 720 }}>
+      <div style={{ padding: bp === 'mobile' ? '16px' : 'var(--space-10)', maxWidth: 720 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div>
             <h2 style={{ fontSize: 17, fontWeight: 500, color: 'var(--color-text-primary)', margin: 0 }}>

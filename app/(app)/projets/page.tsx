@@ -8,6 +8,7 @@ import { CreateProjectModal } from '@/components/projets/create-project-modal'
 import { EditProjectModal } from '@/components/projets/edit-project-modal'
 import { StatusBadge } from '@/components/projets/status-badge'
 import { Project } from '@/types/project'
+import { useBreakpoint } from '@/lib/hooks/use-breakpoint'
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '—'
@@ -16,6 +17,7 @@ function formatDate(dateStr: string | null): string {
 
 export default function ProjetsPage() {
   const router = useRouter()
+  const bp = useBreakpoint()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -40,7 +42,7 @@ export default function ProjetsPage() {
   return (
     <>
       <Header title="Projets" />
-      <div style={{ padding: 'var(--space-10)' }}>
+      <div style={{ padding: bp === 'mobile' ? '16px' : 'var(--space-10)' }}>
 
         {/* Toolbar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>

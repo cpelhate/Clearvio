@@ -9,6 +9,7 @@ import {
 import { Header } from '@/components/layout/header'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/toast'
+import { useBreakpoint } from '@/lib/hooks/use-breakpoint'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1130,7 +1131,8 @@ function DroitsTab() {
             letterSpacing: '0.06em',
           }}>Navigation</span>
         </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, tableLayout: 'fixed' }}>
+        <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, tableLayout: 'fixed', minWidth: 400 }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
               <th style={{ textAlign: 'left', padding: '10px 20px', fontSize: 11, fontWeight: 600, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', width: '30%' }}>
@@ -1165,6 +1167,7 @@ function DroitsTab() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Section Droits par rôle */}
@@ -1177,8 +1180,8 @@ function DroitsTab() {
             </h2>
           </div>
         </div>
-        <div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, tableLayout: 'fixed' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, tableLayout: 'fixed', minWidth: 400 }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
               <th style={{
@@ -1669,6 +1672,7 @@ function ProfilTab({ userEmail }: { userEmail: string | null }) {
 export default function ParametresPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const bp = useBreakpoint()
   const [activeTab, setActiveTab] = useState<Tab>('profil')
   const [email, setEmail] = useState<string | null>(null)
   const [orgName, setOrgName] = useState<string | null>(null)
@@ -1757,7 +1761,7 @@ export default function ParametresPage() {
   return (
     <>
       <Header title="Paramètres" />
-      <div style={{ padding: 'var(--space-10)', maxWidth: 680 }}>
+      <div style={{ padding: bp === 'mobile' ? '16px' : 'var(--space-10)', maxWidth: 680 }}>
 
         {/* Tab navigation */}
         <div style={{
@@ -1766,7 +1770,10 @@ export default function ParametresPage() {
           marginBottom: 28,
           borderBottom: '1px solid var(--color-border-subtle)',
           paddingBottom: 0,
-        }}>
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        } as React.CSSProperties}>
           {tabs.map(tab => (
             <button
               key={tab.key}

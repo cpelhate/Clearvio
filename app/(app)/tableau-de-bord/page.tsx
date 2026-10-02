@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/header'
+import { useBreakpoint } from '@/lib/hooks/use-breakpoint'
 import { StatusBadge } from '@/components/projets/status-badge'
 import { MilestoneDetailModal } from '@/components/jalons/milestone-detail-modal'
 import { FolderKanban, CheckSquare, Diamond, Target, AlertTriangle, CheckCheck, Users } from 'lucide-react'
@@ -113,6 +114,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function TableauDeBordPage() {
   const router = useRouter()
+  const bp = useBreakpoint()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedMilestone, setSelectedMilestone] = useState<{ id: string; projectId: string } | null>(null)
@@ -209,13 +211,17 @@ export default function TableauDeBordPage() {
 
   const maxWorkload = data?.memberWorkload.reduce((m, w) => Math.max(m, w.count), 1) ?? 1
 
+  const kpiCols = bp === 'mobile' ? 'repeat(2, 1fr)' : bp === 'tablet' ? 'repeat(3, 1fr)' : 'repeat(6, 1fr)'
+  const splitCols = bp === 'mobile' ? '1fr' : bp === 'tablet' ? '1fr' : '2fr 1fr'
+  const pagePadding = bp === 'mobile' ? '16px' : 'var(--space-10)'
+
   return (
     <>
       <Header title="Tableau de bord" />
-      <div style={{ padding: 'var(--space-10)' }}>
+      <div style={{ padding: pagePadding }}>
 
         {/* Ligne 1 — 6 KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginBottom: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: kpiCols, gap: 12, marginBottom: 20 }}>
           {loading
             ? Array.from({ length: 6 }).map((_, i) => <KpiCardSkeleton key={i} />)
             : kpis.map((kpi) => (
@@ -285,7 +291,7 @@ export default function TableauDeBordPage() {
         )}
 
         {/* Ligne 3 — Mes tâches du jour + Charge équipe */}
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: splitCols, gap: 16, marginBottom: 20 }}>
 
           {/* Mes tâches du jour */}
           <div style={{

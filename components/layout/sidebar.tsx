@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react"
 import { Logo } from "@/components/logo"
+import { useBreakpoint } from "@/lib/hooks/use-breakpoint"
 
 const mainNavItems = [
   { href: "/tableau-de-bord", label: "Tableau de bord", icon: LayoutDashboard, navAction: '' },
@@ -33,24 +34,6 @@ const bottomItems = [
   { href: "/notifications", label: "Notifications", icon: Bell, navAction: 'nav.notifications' },
   { href: "/parametres", label: "Paramètres", icon: Settings2, navAction: '' },
 ]
-
-function useBreakpoint() {
-  const [bp, setBp] = useState<'mobile' | 'tablet' | 'desktop'>('desktop')
-
-  useEffect(() => {
-    function update() {
-      const w = window.innerWidth
-      if (w < 768) setBp('mobile')
-      else if (w < 1024) setBp('tablet')
-      else setBp('desktop')
-    }
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [])
-
-  return bp
-}
 
 export function Sidebar() {
   const bp = useBreakpoint()

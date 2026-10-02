@@ -9,6 +9,8 @@ import type { ProjectStatus } from '@/types/project'
 import { PROJECT_STATUS_LABELS } from '@/types/project'
 import type { MilestoneStatus } from '@/types/milestone'
 import { MILESTONE_STATUS_COLORS } from '@/types/milestone'
+import { useBreakpoint } from '@/lib/hooks/use-breakpoint'
+import { Monitor } from 'lucide-react'
 
 interface RoadmapProject {
   id: string
@@ -79,6 +81,7 @@ function dateToX(date: Date, timelineStart: Date, totalMs: number, totalWidth: n
 
 export default function RoadmapPage() {
   const router = useRouter()
+  const bp = useBreakpoint()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [data, setData] = useState<{ projects: RoadmapProject[]; milestones: RoadmapMilestone[] } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -144,6 +147,27 @@ export default function RoadmapPage() {
   const MONTH_LABELS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc']
 
   const statusOptions: ProjectStatus[] = ['INITIALISATION', 'EN_COURS', 'EN_ATTENTE', 'CRITIQUE', 'TERMINE']
+
+  if (bp === 'mobile') {
+    return (
+      <>
+        <Header title="Roadmap" />
+        <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16, textAlign: 'center' }}>
+          <div style={{ width: 56, height: 56, borderRadius: 'var(--radius-lg)', background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Monitor size={28} strokeWidth={1.5} style={{ color: 'var(--color-text-tertiary)' }} />
+          </div>
+          <div>
+            <p style={{ fontSize: 16, fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: 6 }}>
+              Roadmap disponible sur desktop
+            </p>
+            <p style={{ fontSize: 14, color: 'var(--color-text-tertiary)', maxWidth: 280 }}>
+              La vue Gantt nécessite un écran plus large pour être utilisée confortablement.
+            </p>
+          </div>
+        </div>
+      </>
+    )
+  }
 
   return (
     <>

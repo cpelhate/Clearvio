@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/header'
+import { useBreakpoint } from '@/lib/hooks/use-breakpoint'
 import { StatusBadge } from '@/components/projets/status-badge'
 import {
   FolderKanban, TrendingUp, AlertTriangle, Clock, BarChart3,
@@ -87,6 +88,7 @@ const STATUS_ORDER: Array<keyof PortfolioData['summary']['byStatus']> = [
 
 export default function PortefeuillePage() {
   const router = useRouter()
+  const bp = useBreakpoint()
   const [data, setData] = useState<PortfolioData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -147,13 +149,16 @@ export default function PortefeuillePage() {
     ? STATUS_ORDER.reduce((s, k) => s + data.summary.byStatus[k], 0)
     : 0
 
+  const kpiCols = bp === 'mobile' ? 'repeat(2, 1fr)' : bp === 'tablet' ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'
+  const pagePadding = bp === 'mobile' ? '16px' : 'var(--space-10)'
+
   return (
     <>
       <Header title="Portefeuille" />
-      <div style={{ padding: 'var(--space-10)' }}>
+      <div style={{ padding: pagePadding }}>
 
         {/* Section 1 — Bannière KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: kpiCols, gap: 16, marginBottom: 24 }}>
           {loading
             ? Array.from({ length: 5 }).map((_, i) => <KpiCardSkeleton key={i} />)
             : kpis.map(kpi => (

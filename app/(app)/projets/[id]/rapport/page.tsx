@@ -8,6 +8,7 @@ import { Project, PROJECT_STATUS_LABELS } from '@/types/project'
 import { Task, TASK_STATUS_LABELS, TASK_PRIORITY_LABELS } from '@/types/task'
 import { Milestone, MILESTONE_STATUS_LABELS, Deliverable, DELIVERABLE_STATUS_LABELS, ProjectObjective, OBJECTIVE_STATUS_LABELS } from '@/types/milestone'
 import { ProjectRisk, RISK_PROBABILITY_LABELS, RISK_IMPACT_LABELS, RISK_LEVEL_LABELS, getRiskLevel } from '@/types/risk'
+import { useBreakpoint } from '@/lib/hooks/use-breakpoint'
 
 interface ReportData {
   project: Project
@@ -68,6 +69,7 @@ const dividerStyle: React.CSSProperties = {
 
 export default function RapportPage() {
   const { id } = useParams<{ id: string }>()
+  const bp = useBreakpoint()
   const [data, setData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -81,8 +83,10 @@ export default function RapportPage() {
 
   const today = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 
+  const reportPadding = bp === 'mobile' ? '24px 16px' : '40px 32px'
+
   if (loading) return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 32px' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: reportPadding }}>
       <style>{`@media print { .no-print { display: none !important; } body { font-size: 11pt; color: #000; } .page-break { page-break-before: always; } }`}</style>
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
         <div style={{ height: 32, width: 120, background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-md)' }} />
@@ -95,7 +99,7 @@ export default function RapportPage() {
   )
 
   if (error || !data) return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 32px', textAlign: 'center' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: reportPadding, textAlign: 'center' }}>
       <p style={{ color: 'var(--color-text-secondary)' }}>Impossible de charger le rapport.</p>
       <Link href={`/projets/${id}`} style={{ color: 'var(--color-accent-default)', fontSize: 14 }}>← Retour au projet</Link>
     </div>
@@ -106,7 +110,7 @@ export default function RapportPage() {
   const completionRate = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 32px', background: 'var(--color-bg-primary)', minHeight: '100vh' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: reportPadding, background: 'var(--color-bg-primary)', minHeight: '100vh' }}>
       <style>{`@media print { .no-print { display: none !important; } body { font-size: 11pt; color: #000; background: #fff; } .page-break { page-break-before: always; } }`}</style>
 
       {/* Barre d'action */}
