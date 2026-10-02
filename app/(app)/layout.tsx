@@ -1,4 +1,5 @@
 import { Sidebar } from "@/components/layout/sidebar"
+import { MainWrapper } from "@/components/layout/main-wrapper"
 import { ToastProvider } from "@/components/ui/toast"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -6,18 +7,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <ToastProvider>
       <div style={{ display: "flex", minHeight: "100vh", background: "var(--color-bg-tertiary)" }}>
         <Sidebar />
-        <main
-          style={{
-            marginLeft: "var(--sidebar-width-expanded)",
-            flex: 1,
-            minHeight: "100vh",
-            background: "var(--color-bg-tertiary)",
-            color: "var(--color-text-primary)",
-            transition: "margin-left 200ms var(--ease-default)",
-          }}
-        >
-          {children}
-        </main>
+        <MainWrapper>{children}</MainWrapper>
       </div>
     </ToastProvider>
   )
