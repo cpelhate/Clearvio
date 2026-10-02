@@ -3,16 +3,13 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/header'
-import { Bell, AlertTriangle, Clock, AlertCircle, CheckCheck } from 'lucide-react'
-import type { DbNotification as Notification } from '@/app/api/notifications/route'
+import { Bell, AlertTriangle, Clock, AlertCircle, CheckCheck, MessageSquare, UserCheck } from 'lucide-react'
+import type { DbNotification, ComputedAlert } from '@/app/api/notifications/route'
 
-const STORAGE_KEY = 'clearvio_notifications_seen_at'
+type AnyNotif = DbNotification | ComputedAlert
 
-function getSeenAt(): number {
-  try { return parseInt(localStorage.getItem(STORAGE_KEY) ?? '0', 10) || 0 } catch { return 0 }
-}
-function setSeenAt(ts: number) {
-  try { localStorage.setItem(STORAGE_KEY, String(ts)) } catch {}
+function isComputed(n: AnyNotif): n is ComputedAlert {
+  return 'date' in n
 }
 
 function formatDate(dateStr: string) {
@@ -24,47 +21,85 @@ function formatDate(dateStr: string) {
     return days === 1 ? 'demain' : `dans ${days} jour${days > 1 ? 's' : ''}`
   }
   const days = Math.floor(diff / 86400000)
-  if (days === 0) return "aujourd'hui"
+  if (days === 0) {
+    const mins = Math.floor(diff / 60000)
+    if (mins < 60) return `il y a ${mins} min`
+    return `il y a ${Math.floor(mins / 60)}h`
+  }
   if (days === 1) return 'hier'
   return `il y a ${days} jour${days > 1 ? 's' : ''}`
 }
 
-const TYPE_ICONS: Record<Notification['type'], React.ReactNode> = {
+const TYPE_ICONS: Record<string, React.ReactNode> = {
   project_late: <AlertCircle size={18} strokeWidth={1.5} />,
   milestone_overdue: <AlertTriangle size={18} strokeWidth={1.5} />,
   milestone_due: <Clock size={18} strokeWidth={1.5} />,
   task_overdue: <AlertTriangle size={18} strokeWidth={1.5} />,
   task_due: <Clock size={18} strokeWidth={1.5} />,
+  TASK_ASSIGNED: <UserCheck size={18} strokeWidth={1.5} />,
+  COMMENT_POSTED: <MessageSquare size={18} strokeWidth={1.5} />,
 }
 
-const TYPE_LABELS: Record<Notification['type'], string> = {
+const TYPE_LABELS: Record<string, string> = {
   project_late: 'Projet en retard',
   milestone_overdue: 'Jalon dépassé',
   milestone_due: 'Jalon à venir',
   task_overdue: 'Tâche en retard',
   task_due: 'Tâche à rendre',
+  TASK_ASSIGNED: 'Assignation',
+  COMMENT_POSTED: 'Commentaire',
 }
 
 export default function NotificationsPage() {
   const router = useRouter()
-  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [items, setItems] = useState<AnyNotif[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [seenAt, setSeenAtState] = useState(0)
 
-  useEffect(() => {
-    setSeenAtState(getSeenAt())
+  function load() {
     fetch('/api/notifications')
-      .then(r => r.ok ? r.json() : [])
-      .then((data) => { setNotifications(data); setLoading(false) })
-  }, [])
-
-  function markAllRead() {
-    const ts = Date.now()
-    setSeenAt(ts)
-    setSeenAtState(ts)
+      .then(r => r.ok ? r.json() : { items: [], unreadCount: 0 })
+      .then((data) => {
+        setItems(data.items ?? [])
+        setUnreadCount(data.unreadCount ?? 0)
+        setLoading(false)
+      })
   }
 
-  const unreadCount = notifications.filter(n => new Date(n.date).getTime() > seenAt || n.severity === 'danger').length
+  useEffect(() => { load() }, [])
+
+  async function markAllRead() {
+    const unread = items.filter(n => !isComputed(n) && !n.isRead) as DbNotification[]
+    await Promise.all(unread.map(n =>
+      fetch(`/api/notifications/${n.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isRead: true }) })
+    ))
+    load()
+  }
+
+  async function dismiss(id: string) {
+    await fetch(`/api/notifications/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isRead: true }) })
+    load()
+  }
+
+  function getSeverity(n: AnyNotif): 'danger' | 'warning' | 'info' {
+    if (isComputed(n)) return n.severity
+    if (n.type === 'TASK_ASSIGNED' || n.type === 'COMMENT_POSTED') return 'info'
+    return n.severity ?? 'warning'
+  }
+
+  function getDate(n: AnyNotif): string {
+    return isComputed(n) ? n.date : n.createdAt
+  }
+
+  function getProjectId(n: AnyNotif): string | null {
+    return n.projectId ?? null
+  }
+
+  const severityColors = {
+    danger: { bg: 'var(--color-danger-bg)', text: 'var(--color-danger-default)' },
+    warning: { bg: 'var(--color-warning-bg)', text: 'var(--color-warning-default)' },
+    info: { bg: 'var(--color-accent-subtle)', text: 'var(--color-accent-default)' },
+  }
 
   return (
     <>
@@ -76,10 +111,10 @@ export default function NotificationsPage() {
               Notifications
             </h2>
             <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)', marginTop: 4 }}>
-              {unreadCount > 0 ? `${unreadCount} alerte${unreadCount > 1 ? 's' : ''} non lue${unreadCount > 1 ? 's' : ''}` : 'Tout est à jour'}
+              {unreadCount > 0 ? `${unreadCount} non lue${unreadCount > 1 ? 's' : ''}` : 'Tout est à jour'}
             </p>
           </div>
-          {notifications.length > 0 && (
+          {items.length > 0 && (
             <button
               onClick={markAllRead}
               style={{
@@ -102,7 +137,7 @@ export default function NotificationsPage() {
               <div key={i} style={{ height: 72, background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-lg)', animation: 'pulse 1.5s ease-in-out infinite' }} />
             ))}
           </div>
-        ) : notifications.length === 0 ? (
+        ) : items.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '64px 0' }}>
             <div style={{ width: 56, height: 56, borderRadius: 'var(--radius-lg)', background: 'var(--color-bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <Bell size={28} strokeWidth={1.5} style={{ color: 'var(--color-text-tertiary)' }} />
@@ -112,52 +147,64 @@ export default function NotificationsPage() {
           </div>
         ) : (
           <div style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-            {notifications.map((n, idx) => (
-              <button
-                key={n.id}
-                onClick={() => router.push(`/projets/${n.projectId}`)}
-                style={{
-                  width: '100%', textAlign: 'left', background: 'none', border: 'none',
-                  borderBottom: idx < notifications.length - 1 ? '1px solid var(--color-border-subtle)' : 'none',
-                  padding: '16px 20px', cursor: 'pointer',
-                  display: 'flex', gap: 14, alignItems: 'flex-start',
-                  transition: 'background 0.1s',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-tertiary)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-              >
-                <div style={{
-                  width: 38, height: 38, borderRadius: 'var(--radius-md)', flexShrink: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: n.severity === 'danger' ? 'var(--color-danger-bg)' : 'var(--color-warning-bg)',
-                  color: n.severity === 'danger' ? 'var(--color-danger-default)' : 'var(--color-warning-default)',
-                }}>
-                  {TYPE_ICONS[n.type]}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                    <p style={{ fontSize: 14, color: 'var(--color-text-primary)', margin: '0 0 4px', fontWeight: 500 }}>
-                      {n.message}
-                    </p>
-                    <span style={{
-                      fontSize: 11, fontWeight: 500, flexShrink: 0,
-                      padding: '2px 8px', borderRadius: 'var(--radius-full)',
-                      background: n.severity === 'danger' ? 'var(--color-danger-bg)' : 'var(--color-warning-bg)',
-                      color: n.severity === 'danger' ? 'var(--color-danger-default)' : 'var(--color-warning-default)',
+            {items.map((n, idx) => {
+              const severity = getSeverity(n)
+              const colors = severityColors[severity]
+              const isUnread = isComputed(n) ? true : !n.isRead
+              return (
+                <div
+                  key={n.id}
+                  style={{
+                    borderBottom: idx < items.length - 1 ? '1px solid var(--color-border-subtle)' : 'none',
+                    padding: '14px 20px',
+                    display: 'flex', gap: 14, alignItems: 'flex-start',
+                    background: isUnread ? 'var(--color-accent-subtle)' : 'transparent',
+                    opacity: isComputed(n) ? 1 : (n.isRead ? 0.6 : 1),
+                  }}
+                >
+                  <div
+                    onClick={() => { const pid = getProjectId(n); if (pid) router.push(`/projets/${pid}`) }}
+                    style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flex: 1, cursor: getProjectId(n) ? 'pointer' : 'default' }}
+                  >
+                    <div style={{
+                      width: 38, height: 38, borderRadius: 'var(--radius-md)', flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: colors.bg, color: colors.text,
                     }}>
-                      {TYPE_LABELS[n.type]}
-                    </span>
+                      {TYPE_ICONS[n.type] ?? <Bell size={18} strokeWidth={1.5} />}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                        <p style={{ fontSize: 14, color: 'var(--color-text-primary)', margin: '0 0 4px', fontWeight: isUnread ? 500 : 400 }}>
+                          {n.message}
+                        </p>
+                        <span style={{
+                          fontSize: 11, fontWeight: 500, flexShrink: 0,
+                          padding: '2px 8px', borderRadius: 'var(--radius-full)',
+                          background: colors.bg, color: colors.text,
+                        }}>
+                          {TYPE_LABELS[n.type] ?? n.type}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                        {isComputed(n) && <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>{n.projectName}</span>}
+                        <span style={{ fontSize: 12, color: 'var(--color-text-disabled)' }}>·</span>
+                        <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>{formatDate(getDate(n))}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>{n.projectName}</span>
-                    <span style={{ fontSize: 12, color: 'var(--color-text-disabled)' }}>·</span>
-                    <span style={{ fontSize: 12, color: n.severity === 'danger' ? 'var(--color-danger-default)' : 'var(--color-warning-default)', fontWeight: 500 }}>
-                      {formatDate(n.date)}
-                    </span>
-                  </div>
+                  {!isComputed(n) && !n.isRead && (
+                    <button
+                      onClick={() => dismiss(n.id)}
+                      title="Marquer comme lu"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)', padding: '2px 4px', flexShrink: 0 }}
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
-              </button>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
