@@ -28,6 +28,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       ...(body.assigneeId !== undefined && { assigneeId: body.assigneeId }),
       ...(body.milestoneId !== undefined && { milestoneId: body.milestoneId || null }),
       ...(body.order !== undefined && { order: body.order }),
+      ...(body.estimatedTime !== undefined && { estimatedTime: body.estimatedTime != null ? Math.max(0, Math.round(body.estimatedTime)) : null }),
+      ...(body.timeSpent !== undefined && { timeSpent: body.timeSpent != null ? Math.max(0, Math.round(body.timeSpent)) : null }),
     },
   })
 

@@ -109,6 +109,18 @@ export default function RapportPage() {
   const completedTasks = tasks.filter(t => t.status === 'TERMINE').length
   const completionRate = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0
 
+  const totalEstimated = tasks.reduce((s, t) => s + (t.estimatedTime ?? 0), 0)
+  const totalSpent = tasks.reduce((s, t) => s + (t.timeSpent ?? 0), 0)
+  const hasTimeData = tasks.some(t => t.estimatedTime != null || t.timeSpent != null)
+
+  function fmtMin(mins: number): string {
+    if (mins === 0) return '—'
+    if (mins < 60) return `${mins}min`
+    const h = Math.floor(mins / 60)
+    const m = mins % 60
+    return m > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${h}h`
+  }
+
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: reportPadding, background: 'var(--color-bg-primary)', minHeight: '100vh' }}>
       <style>{`@media print { .no-print { display: none !important; } body { font-size: 11pt; color: #000; background: #fff; } .page-break { page-break-before: always; } }`}</style>
@@ -226,19 +238,64 @@ export default function RapportPage() {
                   <th style={thStyle}>Statut</th>
                   <th style={thStyle}>Priorité</th>
                   <th style={thStyle}>Échéance</th>
+                  {hasTimeData && <th style={{ ...thStyle, textAlign: 'right' }}>Estimé</th>}
+                  {hasTimeData && <th style={{ ...thStyle, textAlign: 'right' }}>Passé</th>}
+                  {hasTimeData && <th style={{ ...thStyle, textAlign: 'right' }}>Ratio</th>}
                 </tr>
               </thead>
               <tbody>
-                {tasks.map(task => (
-                  <tr key={task.id}>
-                    <td style={tdStyle}>{task.title}</td>
-                    <td style={tdStyle}>{TASK_STATUS_LABELS[task.status]}</td>
-                    <td style={tdStyle}>{TASK_PRIORITY_LABELS[task.priority]}</td>
-                    <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontSize: 12 }}>{formatDate(task.dueDate)}</td>
-                  </tr>
-                ))}
+                {tasks.map(task => {
+                  const pct = task.estimatedTime && task.estimatedTime > 0 && task.timeSpent != null
+                    ? Math.round((task.timeSpent / task.estimatedTime) * 100)
+                    : null
+                  const pctColor = pct == null ? 'var(--color-text-tertiary)' : pct > 100 ? 'var(--color-danger-default)' : pct > 80 ? 'var(--color-warning-default)' : 'var(--color-success-default)'
+                  return (
+                    <tr key={task.id}>
+                      <td style={tdStyle}>{task.title}</td>
+                      <td style={tdStyle}>{TASK_STATUS_LABELS[task.status]}</td>
+                      <td style={tdStyle}>{TASK_PRIORITY_LABELS[task.priority]}</td>
+                      <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontSize: 12 }}>{formatDate(task.dueDate)}</td>
+                      {hasTimeData && <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontSize: 12, textAlign: 'right', color: 'var(--color-text-secondary)' }}>{task.estimatedTime != null ? fmtMin(task.estimatedTime) : '—'}</td>}
+                      {hasTimeData && <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontSize: 12, textAlign: 'right' }}>{task.timeSpent != null ? fmtMin(task.timeSpent) : '—'}</td>}
+                      {hasTimeData && <td style={{ ...tdStyle, textAlign: 'right', fontSize: 12, fontWeight: 500, color: pctColor }}>{pct != null ? `${pct} %` : '—'}</td>}
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
+          </div>
+        </>
+      )}
+
+      {/* Bilan temps */}
+      {hasTimeData && (
+        <>
+          <div style={dividerStyle} />
+          <div style={sectionStyle}>
+            <p style={sectionTitleStyle}>Bilan du temps</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+              {[
+                { label: 'Total estimé', value: fmtMin(totalEstimated) },
+                { label: 'Temps passé', value: fmtMin(totalSpent) },
+                { label: 'Ratio global', value: totalEstimated > 0 ? `${Math.round((totalSpent / totalEstimated) * 100)} %` : '—' },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-md)', padding: '16px', textAlign: 'center' }}>
+                  <p style={{ fontSize: 22, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 4, fontFamily: 'var(--font-mono)' }}>{value}</p>
+                  <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)' }}>{label}</p>
+                </div>
+              ))}
+            </div>
+            {totalEstimated > 0 && (
+              <div>
+                <div style={{ height: 6, background: 'var(--color-border-subtle)', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
+                  <div style={{ height: '100%', width: `${Math.min(Math.round((totalSpent / totalEstimated) * 100), 100)}%`, background: 'var(--color-accent-default)', borderRadius: 99 }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                  <span>{fmtMin(totalSpent)} passés</span>
+                  <span>{totalSpent <= totalEstimated ? `${fmtMin(totalEstimated - totalSpent)} restants` : `${fmtMin(totalSpent - totalEstimated)} de dépassement`}</span>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}

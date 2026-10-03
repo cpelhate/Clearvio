@@ -218,6 +218,8 @@ model Task {
   assigneeId  String?
   startDate   DateTime?
   dueDate     DateTime?
+  estimatedTime Int?       @map("estimated_time")
+  timeSpent     Int?       @map("time_spent")
   order       Int          @default(0)
   level       Int          @default(0)
   createdAt   DateTime     @default(now())

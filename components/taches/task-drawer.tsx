@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { X, Trash2 } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { X, Trash2, Timer } from 'lucide-react'
 import { Task, TaskStatus, TaskPriority, TASK_STATUS_LABELS, TASK_PRIORITY_LABELS, TASK_PRIORITY_COLORS } from '@/types/task'
 import { Milestone } from '@/types/milestone'
 import { TaskComments } from './task-comments'
@@ -28,8 +28,32 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
   const [milestones, setMilestones] = useState<Milestone[]>([])
   const [members, setMembers] = useState<{ id: string; userId: string; role: string; user: { id: string; name: string | null; email: string } }[]>([])
   const [draft, setDraft] = useState<Partial<Task>>({})
+  const [estimatedInput, setEstimatedInput] = useState('')
+  const [spentInput, setSpentInput] = useState('')
+  const estimatedRef = useRef<string>('')
+  const spentRef = useRef<string>('')
 
   const isDirty = Object.keys(draft).length > 0
+
+  function parseMinutes(raw: string): number | null {
+    const s = raw.trim()
+    if (!s) return null
+    const hm = s.match(/^(\d+)h\s*(\d+)?(?:min)?$/i)
+    if (hm) return parseInt(hm[1]) * 60 + (hm[2] ? parseInt(hm[2]) : 0)
+    const h = s.match(/^(\d+(?:[.,]\d+)?)h$/i)
+    if (h) return Math.round(parseFloat(h[1].replace(',', '.')) * 60)
+    const m = s.match(/^(\d+)(?:min)?$/i)
+    if (m) return parseInt(m[1])
+    return null
+  }
+
+  function formatMinutes(mins: number | null | undefined): string {
+    if (mins == null) return ''
+    if (mins < 60) return `${mins}min`
+    const h = Math.floor(mins / 60)
+    const m = mins % 60
+    return m > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${h}h`
+  }
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null))
@@ -53,6 +77,12 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
       setTitle(task.title)
       setShortName(task.shortName || '')
       setDescription(task.description || '')
+      const est = formatMinutes(task.estimatedTime)
+      const spent = formatMinutes(task.timeSpent)
+      setEstimatedInput(est)
+      setSpentInput(spent)
+      estimatedRef.current = est
+      spentRef.current = spent
       setDraft({})
       setConfirmDelete(false)
     }
@@ -73,6 +103,12 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
     setTitle(task.title)
     setShortName(task.shortName || '')
     setDescription(task.description || '')
+    const est = formatMinutes(task.estimatedTime)
+    const spent = formatMinutes(task.timeSpent)
+    setEstimatedInput(est)
+    setSpentInput(spent)
+    estimatedRef.current = est
+    spentRef.current = spent
   }
 
   const handleClose = () => {
@@ -258,6 +294,74 @@ export function TaskDrawer({ task, projectId, onClose, onUpdate, onDelete }: Tas
                 style={{ ...inputStyle, height: 32, padding: '0 8px', fontSize: 13 }}
               />
             </div>
+          </div>
+
+          {/* Suivi du temps */}
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 10 }}>
+              <Timer size={13} strokeWidth={1.5} />
+              Suivi du temps
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 10 }}>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 5 }}>Estimé</div>
+                <input
+                  value={estimatedInput}
+                  onChange={e => setEstimatedInput(e.target.value)}
+                  onBlur={() => {
+                    const mins = parseMinutes(estimatedInput)
+                    const formatted = formatMinutes(mins)
+                    setEstimatedInput(formatted)
+                    if (formatted !== estimatedRef.current) {
+                      estimatedRef.current = formatted
+                      setDraft(d => ({ ...d, estimatedTime: mins }))
+                    }
+                  }}
+                  placeholder="ex. 2h30"
+                  style={{ ...inputStyle, height: 32, padding: '0 10px', fontSize: 13, fontFamily: 'var(--font-mono)' }}
+                />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 5 }}>Passé</div>
+                <input
+                  value={spentInput}
+                  onChange={e => setSpentInput(e.target.value)}
+                  onBlur={() => {
+                    const mins = parseMinutes(spentInput)
+                    const formatted = formatMinutes(mins)
+                    setSpentInput(formatted)
+                    if (formatted !== spentRef.current) {
+                      spentRef.current = formatted
+                      setDraft(d => ({ ...d, timeSpent: mins }))
+                    }
+                  }}
+                  placeholder="ex. 1h45"
+                  style={{ ...inputStyle, height: 32, padding: '0 10px', fontSize: 13, fontFamily: 'var(--font-mono)' }}
+                />
+              </div>
+            </div>
+            {(() => {
+              const est = draft.estimatedTime !== undefined ? draft.estimatedTime : task.estimatedTime
+              const spent = draft.timeSpent !== undefined ? draft.timeSpent : task.timeSpent
+              if (!est && !spent) return null
+              const pct = est && est > 0 && spent != null ? Math.min(Math.round((spent / est) * 100), 999) : null
+              const barColor = pct == null ? 'var(--color-accent-default)' : pct > 100 ? 'var(--color-danger-default)' : pct > 80 ? 'var(--color-warning-default)' : 'var(--color-accent-default)'
+              return (
+                <div>
+                  {pct != null && (
+                    <div style={{ height: 5, background: 'var(--color-border-subtle)', borderRadius: 99, overflow: 'hidden', marginBottom: 5 }}>
+                      <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, background: barColor, borderRadius: 99, transition: 'width 300ms ease' }} />
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--color-text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                    <span style={{ color: barColor }}>
+                      {spent != null ? formatMinutes(spent) : '—'} passé{pct != null ? ` · ${pct} %` : ''}
+                    </span>
+                    <span>{est != null ? `sur ${formatMinutes(est)} estimé` : ''}</span>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
 
           {/* Description */}

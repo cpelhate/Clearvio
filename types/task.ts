@@ -50,6 +50,8 @@ export interface Task {
   status: TaskStatus
   priority: TaskPriority
   assigneeId: string | null
+  estimatedTime: number | null
+  timeSpent: number | null
   startDate: string | null
   dueDate: string | null
   order: number
