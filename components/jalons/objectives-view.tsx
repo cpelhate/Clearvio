@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Target, Trash2, CheckCircle2 } from 'lucide-react'
 import { ProjectObjective, ObjectiveStatus, OBJECTIVE_STATUS_LABELS, OBJECTIVE_STATUS_COLORS, OBJECTIVE_STATUS_BG } from '@/types/milestone'
+import { useToast } from '@/components/ui/toast'
 
 const STATUS_OPTIONS: ObjectiveStatus[] = ['PREVU', 'EN_COURS', 'ATTEINT', 'ABANDONNE']
 
@@ -15,6 +16,7 @@ export function ObjectivesView({ projectId }: ObjectivesViewProps) {
   const [form, setForm] = useState({ title: '', successIndicator: '' })
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -32,10 +34,10 @@ export function ObjectivesView({ projectId }: ObjectivesViewProps) {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     })
-    if (res.ok) { await load(); setShowForm(false); setForm({ title: '', successIndicator: '' }) }
+    if (res.ok) { await load(); setShowForm(false); setForm({ title: '', successIndicator: '' }); toast('Objectif créé') }
     else {
-      const d = await res.json()
-      alert(d.error || 'Erreur')
+      const d = await res.json().catch(() => ({}))
+      toast(d.error || 'Impossible de créer l\'objectif', 'error')
     }
     setSaving(false)
   }

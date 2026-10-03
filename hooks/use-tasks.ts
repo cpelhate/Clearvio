@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Task } from '@/types/task'
+import { useToast } from '@/components/ui/toast'
 
 export function useTasks(projectId: string) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -22,7 +24,8 @@ export function useTasks(projectId: string) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })
-    if (res.ok) await load()
+    if (res.ok) { await load(); toast('Tâche créée') }
+    else toast('Impossible de créer la tâche', 'error')
     return res
   }
 
@@ -32,7 +35,14 @@ export function useTasks(projectId: string) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })
-    if (res.ok) await load()
+    if (res.ok) {
+      const updated: Task = await res.json()
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updated } : t))
+      toast('Tâche enregistrée')
+    } else {
+      await load()
+      toast('Impossible d\'enregistrer', 'error')
+    }
     return res
   }
 
@@ -41,6 +51,7 @@ export function useTasks(projectId: string) {
       method: 'DELETE',
     })
     if (res.ok) await load()
+    else toast('Impossible de supprimer la tâche', 'error')
     return res
   }
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Plus, ChevronRight, ChevronDown, Flag, Check, Trash2, X, SlidersHorizontal } from 'lucide-react'
 import { Task, TaskStatus, TaskPriority, TASK_STATUS_COLORS, TASK_STATUS_LABELS, TASK_PRIORITY_COLORS, TASK_PRIORITY_LABELS } from '@/types/task'
 import { TaskDrawer } from './task-drawer'
+import { useToast } from '@/components/ui/toast'
 
 interface MemberInfo { userId: string; name: string | null }
 interface MilestoneInfo { id: string; title: string }
@@ -212,6 +213,7 @@ export function TaskListView({ tasks, projectId, members = [], onCreateTask, onU
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkConfirmDelete, setBulkConfirmDelete] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)
+  const { toast } = useToast()
   const [bulkStatusVal, setBulkStatusVal] = useState('')
   const [bulkPriorityVal, setBulkPriorityVal] = useState('')
   // Filter state
@@ -285,21 +287,27 @@ export function TaskListView({ tasks, projectId, members = [], onCreateTask, onU
 
   const bulkStatus = async (status: TaskStatus) => {
     setBulkLoading(true)
+    const count = selectedIds.size
     await Promise.all([...selectedIds].map(id => onUpdateTask(id, { status })))
     setBulkLoading(false); clearSelection()
+    toast(`${count} tâche${count > 1 ? 's' : ''} mise${count > 1 ? 's' : ''} à jour`)
   }
 
   const bulkPriority = async (priority: TaskPriority) => {
     setBulkLoading(true)
+    const count = selectedIds.size
     await Promise.all([...selectedIds].map(id => onUpdateTask(id, { priority })))
     setBulkLoading(false); clearSelection()
+    toast(`${count} tâche${count > 1 ? 's' : ''} mise${count > 1 ? 's' : ''} à jour`)
   }
 
   const bulkDelete = async () => {
     if (!bulkConfirmDelete) { setBulkConfirmDelete(true); return }
     setBulkLoading(true)
+    const count = selectedIds.size
     for (const id of [...selectedIds]) await onDeleteTask(id)
     setBulkLoading(false); clearSelection()
+    toast(`${count} tâche${count > 1 ? 's' : ''} supprimée${count > 1 ? 's' : ''}`)
   }
 
   const handleStatusChange = async (id: string, status: TaskStatus) => {

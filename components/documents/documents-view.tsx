@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Upload, File, FileText, Image, Trash2, Download, FolderOpen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/toast'
 
 const BUCKET = 'documents-clearvio'
 
@@ -46,6 +47,7 @@ export function DocumentsView({ projectId }: DocumentsViewProps) {
   const [dragOver, setDragOver] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { toast } = useToast()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -64,7 +66,7 @@ export function DocumentsView({ projectId }: DocumentsViewProps) {
     for (const file of Array.from(files)) {
       const storagePath = `${projectId}/${Date.now()}-${file.name}`
       const { error } = await supabase.storage.from(BUCKET).upload(storagePath, file)
-      if (error) { console.error('Upload error:', error); continue }
+      if (error) { toast(`Échec de l'upload : ${file.name}`, 'error'); continue }
 
       await fetch(`/api/projects/${projectId}/documents`, {
         method: 'POST',
