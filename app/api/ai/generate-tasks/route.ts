@@ -60,9 +60,14 @@ Règles :
   }
 
   try {
-    const parsed = JSON.parse(content.text)
+    // Strip potential markdown code fences the model may add
+    const cleaned = content.text
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```\s*$/, '')
+      .trim()
+    const parsed = JSON.parse(cleaned)
     return NextResponse.json(parsed)
   } catch {
-    return NextResponse.json({ error: 'Impossible de parser la réponse IA' }, { status: 500 })
+    return NextResponse.json({ error: 'Impossible de parser la réponse IA', raw: content.text.slice(0, 200) }, { status: 500 })
   }
 }
