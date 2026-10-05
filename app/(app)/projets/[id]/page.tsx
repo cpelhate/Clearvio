@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Settings2, Users, LayoutList, Columns3, GanttChart as GanttChartIcon, CalendarDays, ShieldAlert, Diamond, Package, Target, FileText, Paperclip, GitFork } from 'lucide-react'
+import { ArrowLeft, Settings2, Users, LayoutList, Columns3, GanttChart as GanttChartIcon, CalendarDays, ShieldAlert, Diamond, Package, Target, FileText, Paperclip, GitFork, Sparkles } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { StatusBadge } from '@/components/projets/status-badge'
 import { Project } from '@/types/project'
@@ -21,6 +21,7 @@ import { MembersView } from '@/components/projets/members-view'
 import { DocumentsView } from '@/components/documents/documents-view'
 import { DependenciesView } from '@/components/dependencies/dependencies-view'
 import { CalendarView } from '@/components/calendrier/calendar-view'
+import { AiStatusReportModal } from '@/components/projets/ai-status-report-modal'
 import { ProjectMember } from '@/types/project'
 import { Milestone } from '@/types/milestone'
 import { useBreakpoint } from '@/lib/hooks/use-breakpoint'
@@ -52,6 +53,7 @@ export default function ProjetPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('liste')
   const [showSettings, setShowSettings] = useState(false)
+  const [showAiReport, setShowAiReport] = useState(false)
 
   useEffect(() => {
     fetch(`/api/projects/${id}`)
@@ -165,6 +167,18 @@ export default function ProjetPage() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <button
+                onClick={() => setShowAiReport(true)}
+                title="Rapport de statut IA"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px',
+                  background: 'transparent', border: '1px solid var(--color-border-default)',
+                  borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer',
+                  color: 'var(--color-text-secondary)',
+                }}
+              >
+                <Sparkles size={14} strokeWidth={1.5} />{bp !== 'mobile' && ' Statut IA'}
+              </button>
               <Link
                 href={`/projets/${id}/rapport`}
                 target="_blank"
@@ -224,6 +238,10 @@ export default function ProjetPage() {
           })}
         </div>
       </div>
+
+      {showAiReport && (
+        <AiStatusReportModal projectId={id} onClose={() => setShowAiReport(false)} />
+      )}
 
       {project && showSettings && (
         <EditProjectModal
