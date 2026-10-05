@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { checkPermission, ACTIONS } from '@/lib/permissions'
 import { createNotification } from '@/lib/notifications'
+import { createGithubIssue } from '@/lib/github'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: projectId } = await params
@@ -65,6 +66,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       projectId,
       taskId: task.id,
     })
+  }
+
+  // Sync to GitHub — only top-level tasks
+  if (task.level === 0) {
+    const orgMember = await prisma.organizationMember.findFirst({ where: { userId: user.id }, select: { organizationId: true } })
+    if (orgMember) {
+      const gh = await prisma.githubConnection.findUnique({ where: { organizationId: orgMember.organizationId } })
+      if (gh?.accessToken) {
+        const issueBody = body.description ? `${body.description}\n\n---\n*Créé depuis Clearvio*` : '*Créé depuis Clearvio*'
+        const issueNumber = await createGithubIssue(
+          { repoOwner: gh.repoOwner, repoName: gh.repoName, accessToken: gh.accessToken },
+          { title: task.title, body: issueBody, labels: ['clearvio'] }
+        )
+        if (issueNumber) {
+          await prisma.task.update({ where: { id: task.id }, data: { githubIssueNumber: issueNumber } })
+          return NextResponse.json({ ...task, githubIssueNumber: issueNumber }, { status: 201 })
+        }
+      }
+    }
   }
 
   return NextResponse.json(task, { status: 201 })

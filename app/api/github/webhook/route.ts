@@ -94,6 +94,47 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // ── Issues events ────────────────────────────────────────────────────────────
+  if (event === 'issues') {
+    const issue = payload.issue as Record<string, unknown>
+    const action = payload.action as string
+    const issueNumber = issue?.number as number
+    const issueTitle = (issue?.title as string) ?? ''
+    const issueUrl = (issue?.html_url as string) ?? ''
+
+    if (action === 'closed') {
+      const task = await prisma.task.findFirst({
+        where: { githubIssueNumber: issueNumber },
+      })
+      if (task && task.status !== 'TERMINE') {
+        await prisma.task.update({ where: { id: task.id }, data: { status: 'TERMINE' } })
+        await prisma.taskComment.create({
+          data: {
+            taskId: task.id,
+            userId: 'github-bot',
+            content: `✅ Issue GitHub #${issueNumber} fermée : [${issueTitle}](${issueUrl})`,
+          },
+        })
+      }
+    }
+
+    if (action === 'reopened') {
+      const task = await prisma.task.findFirst({
+        where: { githubIssueNumber: issueNumber },
+      })
+      if (task && task.status === 'TERMINE') {
+        await prisma.task.update({ where: { id: task.id }, data: { status: 'EN_COURS' } })
+        await prisma.taskComment.create({
+          data: {
+            taskId: task.id,
+            userId: 'github-bot',
+            content: `🔄 Issue GitHub #${issueNumber} réouverte : [${issueTitle}](${issueUrl})`,
+          },
+        })
+      }
+    }
+  }
+
   // ── Push / commit events ─────────────────────────────────────────────────────
   if (event === 'push') {
     const commits = (payload.commits as Record<string, unknown>[]) ?? []

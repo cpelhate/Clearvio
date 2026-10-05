@@ -1281,6 +1281,7 @@ interface GithubConnection {
   repoOwner: string
   repoName: string
   webhookSecret: string
+  accessToken: string | null
   createdAt: string
 }
 
@@ -1290,6 +1291,7 @@ function GithubTab() {
   const [loading, setLoading] = useState(true)
   const [repoOwner, setRepoOwner] = useState('')
   const [repoName, setRepoName] = useState('')
+  const [accessToken, setAccessToken] = useState('')
   const [saving, setSaving] = useState(false)
   const [showSecret, setShowSecret] = useState(false)
   const [copiedSecret, setCopiedSecret] = useState(false)
@@ -1315,7 +1317,7 @@ function GithubTab() {
       const res = await fetch('/api/settings/github', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repoOwner: repoOwner.trim(), repoName: repoName.trim() }),
+        body: JSON.stringify({ repoOwner: repoOwner.trim(), repoName: repoName.trim(), accessToken: accessToken.trim() || undefined }),
       })
       if (res.ok) {
         const data = await res.json()
@@ -1381,8 +1383,9 @@ function GithubTab() {
         </div>
         <div style={sectionBodyStyle}>
           <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.6, marginBottom: 20 }}>
-            Synchronisez automatiquement les tâches avec vos Pull Requests. Utilisez le <strong>shortName</strong> d&apos;une tâche
-            (ex. <code style={{ fontFamily: 'var(--font-mono)', background: 'var(--color-bg-tertiary)', padding: '1px 5px', borderRadius: 3 }}>WIRE-1</code>) dans le titre ou la description de vos PR.
+            Synchronisation bidirectionnelle entre les tâches Clearvio et les issues GitHub.
+            Les tâches créées sont automatiquement ouvertes comme issues. Les PR référençant un <strong>shortName</strong>{' '}
+            (ex. <code style={{ fontFamily: 'var(--font-mono)', background: 'var(--color-bg-tertiary)', padding: '1px 5px', borderRadius: 3 }}>WIRE-1</code>) mettent à jour le statut de la tâche.
           </p>
 
           <form onSubmit={handleSave}>
@@ -1410,6 +1413,23 @@ function GithubTab() {
                     required
                   />
                 </div>
+              </div>
+              <div>
+                <label style={labelStyle}>
+                  Personal Access Token{' '}
+                  <span style={{ color: 'var(--color-text-tertiary)', fontWeight: 400 }}>(pour créer des issues)</span>
+                </label>
+                <input
+                  type="password"
+                  value={accessToken}
+                  onChange={e => setAccessToken(e.target.value)}
+                  placeholder={connection?.accessToken === '***' ? '••••••• (enregistré)' : 'ghp_xxxxxxxxxxxxxxxxxxxx'}
+                  style={inputStyle}
+                  autoComplete="off"
+                />
+                <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginTop: 4 }}>
+                  Créez un token sur <strong>github.com → Settings → Developer settings → Personal access tokens</strong> avec les permissions <code style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>repo</code>.
+                </p>
               </div>
 
               <div style={{ display: 'flex', gap: 8 }}>

@@ -221,10 +221,11 @@ model Task {
   dueDate     DateTime?
   estimatedTime Int?       @map("estimated_time")
   timeSpent     Int?       @map("time_spent")
-  order       Int          @default(0)
-  level       Int          @default(0)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  order             Int          @default(0)
+  level             Int          @default(0)
+  githubIssueNumber Int?         @map("github_issue_number")
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
   parent      Task?   @relation("TaskHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children    Task[]  @relation("TaskHierarchy")
@@ -448,6 +449,7 @@ model GithubConnection {
   repoOwner      String   @map("repo_owner")
   repoName       String   @map("repo_name")
   webhookSecret  String   @map("webhook_secret")
+  accessToken    String?  @map("access_token")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 

@@ -39,27 +39,30 @@ export async function POST(request: NextRequest) {
   const orgId = await getOrgId(user.id)
   if (!orgId) return NextResponse.json({ error: 'Permission refusée — Admin requis' }, { status: 403 })
 
-  const { repoOwner, repoName } = await request.json()
+  const { repoOwner, repoName, accessToken } = await request.json()
   if (!repoOwner?.trim() || !repoName?.trim()) {
     return NextResponse.json({ error: 'Propriétaire et nom du dépôt requis' }, { status: 400 })
   }
 
-  const webhookSecret = crypto.randomBytes(32).toString('hex')
-
   const existing = await prisma.githubConnection.findUnique({ where: { organizationId: orgId } })
-  let connection
-  if (existing) {
-    connection = await prisma.githubConnection.update({
-      where: { organizationId: orgId },
-      data: { repoOwner: repoOwner.trim(), repoName: repoName.trim(), webhookSecret },
-    })
-  } else {
-    connection = await prisma.githubConnection.create({
-      data: { organizationId: orgId, repoOwner: repoOwner.trim(), repoName: repoName.trim(), webhookSecret },
-    })
+  const webhookSecret = existing?.webhookSecret ?? crypto.randomBytes(32).toString('hex')
+
+  const data = {
+    repoOwner: repoOwner.trim(),
+    repoName: repoName.trim(),
+    webhookSecret,
+    ...(accessToken !== undefined && { accessToken: accessToken?.trim() || null }),
   }
 
-  return NextResponse.json(connection)
+  let connection
+  if (existing) {
+    connection = await prisma.githubConnection.update({ where: { organizationId: orgId }, data })
+  } else {
+    connection = await prisma.githubConnection.create({ data: { organizationId: orgId, ...data } })
+  }
+
+  // Return without exposing the full accessToken
+  return NextResponse.json({ ...connection, accessToken: connection.accessToken ? '***' : null })
 }
 
 export async function DELETE(_req: NextRequest) {
