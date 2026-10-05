@@ -22,6 +22,7 @@ import { DocumentsView } from '@/components/documents/documents-view'
 import { DependenciesView } from '@/components/dependencies/dependencies-view'
 import { CalendarView } from '@/components/calendrier/calendar-view'
 import { AiStatusReportModal } from '@/components/projets/ai-status-report-modal'
+import { AiWritingModal } from '@/components/projets/ai-writing-modal'
 import { ProjectMember } from '@/types/project'
 import { Milestone } from '@/types/milestone'
 import { useBreakpoint } from '@/lib/hooks/use-breakpoint'
@@ -54,6 +55,7 @@ export default function ProjetPage() {
   const [activeTab, setActiveTab] = useState('liste')
   const [showSettings, setShowSettings] = useState(false)
   const [showAiReport, setShowAiReport] = useState(false)
+  const [showAiWriting, setShowAiWriting] = useState(false)
 
   useEffect(() => {
     fetch(`/api/projects/${id}`)
@@ -168,6 +170,18 @@ export default function ProjetPage() {
             </div>
             <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
               <button
+                onClick={() => setShowAiWriting(true)}
+                title="Rédaction assistée par IA"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px',
+                  background: 'transparent', border: '1px solid var(--color-border-default)',
+                  borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer',
+                  color: 'var(--color-text-secondary)',
+                }}
+              >
+                <FileText size={14} strokeWidth={1.5} />{bp !== 'mobile' && ' Rédiger'}
+              </button>
+              <button
                 onClick={() => setShowAiReport(true)}
                 title="Rapport de statut IA"
                 style={{
@@ -238,6 +252,22 @@ export default function ProjetPage() {
           })}
         </div>
       </div>
+
+      {showAiWriting && (
+        <AiWritingModal
+          projectId={id}
+          onClose={() => setShowAiWriting(false)}
+          onImportTasks={async (tasks) => {
+            for (const t of tasks) {
+              await fetch(`/api/projects/${id}/tasks`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: t.title, description: t.description, priority: t.priority }),
+              })
+            }
+          }}
+        />
+      )}
 
       {showAiReport && (
         <AiStatusReportModal projectId={id} onClose={() => setShowAiReport(false)} />
