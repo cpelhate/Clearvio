@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, ShieldAlert, Pencil, Trash2, X, Grid3x3 } from 'lucide-react'
+import { Plus, ShieldAlert, Pencil, Trash2, X, Grid3x3, Sparkles, Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import {
   ProjectRisk,
@@ -242,6 +242,176 @@ function EditModal({ risk, projectId, onClose, onSaved }: EditModalProps) {
   )
 }
 
+interface AiSuggestedRisk {
+  title: string
+  description: string
+  probability: RiskProbability
+  impact: RiskImpact
+  mitigation: string
+}
+
+interface AiRisksPanelProps {
+  projectId: string
+  onImported: () => void
+}
+
+function AiRisksPanel({ projectId, onImported }: AiRisksPanelProps) {
+  const [loading, setLoading] = useState(false)
+  const [suggestions, setSuggestions] = useState<AiSuggestedRisk[]>([])
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [importing, setImporting] = useState(false)
+  const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  const { toast } = useToast()
+
+  const generate = async () => {
+    setLoading(true)
+    setSuggestions([])
+    setSelected(new Set())
+    try {
+      const res = await fetch(`/api/projects/${projectId}/ai-risks`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) { toast(data.error ?? 'Erreur IA', 'error'); return }
+      setSuggestions(data.risks ?? [])
+      setSelected(new Set((data.risks ?? []).map((_: AiSuggestedRisk, i: number) => i)))
+    } catch {
+      toast('Erreur réseau', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const toggleSelect = (i: number) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(i) ? next.delete(i) : next.add(i)
+      return next
+    })
+  }
+
+  const toggleExpand = (i: number) => {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      next.has(i) ? next.delete(i) : next.add(i)
+      return next
+    })
+  }
+
+  const importSelected = async () => {
+    if (selected.size === 0) return
+    setImporting(true)
+    try {
+      const toImport = suggestions.filter((_, i) => selected.has(i))
+      await Promise.all(toImport.map(r =>
+        fetch(`/api/projects/${projectId}/risks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: r.title, description: r.description, probability: r.probability, impact: r.impact, mitigation: r.mitigation }),
+        })
+      ))
+      toast(`${toImport.length} risque${toImport.length > 1 ? 's' : ''} ajouté${toImport.length > 1 ? 's' : ''}`, 'success')
+      setSuggestions([])
+      setSelected(new Set())
+      onImported()
+    } catch {
+      toast('Erreur lors de l\'import', 'error')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  return (
+    <div style={{ border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-lg)', padding: 16, marginBottom: 20, background: 'var(--color-bg-secondary)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: suggestions.length > 0 ? 16 : 0 }}>
+        <div>
+          <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>Analyse IA des risques</p>
+          <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginTop: 1 }}>L'IA identifie les risques potentiels à partir du contexte projet</p>
+        </div>
+        <button
+          onClick={generate}
+          disabled={loading}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 14px', background: 'var(--color-accent-default)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: loading ? 'not-allowed' : 'pointer', color: '#fff', opacity: loading ? 0.6 : 1, flexShrink: 0 }}
+        >
+          <Sparkles size={13} strokeWidth={1.5} />
+          {loading ? 'Analyse…' : suggestions.length > 0 ? 'Relancer' : 'Analyser'}
+        </button>
+      </div>
+
+      {suggestions.length > 0 && (
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {suggestions.map((risk, i) => {
+              const level = getRiskLevel(risk.probability, risk.impact)
+              const isExpanded = expanded.has(i)
+              return (
+                <div
+                  key={i}
+                  style={{
+                    background: 'var(--color-bg-primary)', border: `1px solid ${selected.has(i) ? 'var(--color-accent-default)' : 'var(--color-border-subtle)'}`,
+                    borderRadius: 'var(--radius-md)', overflow: 'hidden',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer' }} onClick={() => toggleSelect(i)}>
+                    <div style={{
+                      width: 18, height: 18, borderRadius: 4, border: `1.5px solid ${selected.has(i) ? 'var(--color-accent-default)' : 'var(--color-border-default)'}`,
+                      background: selected.has(i) ? 'var(--color-accent-default)' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      {selected.has(i) && <Check size={11} strokeWidth={2.5} color="#fff" />}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{risk.title}</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 'var(--radius-full)', background: RISK_LEVEL_BG[level], color: RISK_LEVEL_COLORS[level], fontWeight: 500 }}>{RISK_LEVEL_LABELS[level]}</span>
+                      <button
+                        onClick={e => { e.stopPropagation(); toggleExpand(i) }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)' }}
+                      >
+                        {isExpanded ? <ChevronUp size={14} strokeWidth={1.5} /> : <ChevronDown size={14} strokeWidth={1.5} />}
+                      </button>
+                    </div>
+                  </div>
+                  {isExpanded && (
+                    <div style={{ padding: '0 12px 12px 40px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {risk.description && <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>{risk.description}</p>}
+                      {risk.mitigation && (
+                        <div style={{ background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-sm)', padding: '8px 10px' }}>
+                          <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-tertiary)', marginBottom: 4 }}>Mitigation</p>
+                          <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>{risk.mitigation}</p>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>Probabilité : <strong>{RISK_PROBABILITY_LABELS[risk.probability]}</strong></span>
+                        <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>Impact : <strong>{RISK_IMPACT_LABELS[risk.impact]}</strong></span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
+            <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', alignSelf: 'center', flex: 1 }}>{selected.size} / {suggestions.length} sélectionné{selected.size > 1 ? 's' : ''}</p>
+            <button
+              onClick={() => setSelected(selected.size === suggestions.length ? new Set() : new Set(suggestions.map((_, i) => i)))}
+              style={{ height: 32, padding: '0 12px', background: 'none', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', fontSize: 12, cursor: 'pointer', color: 'var(--color-text-secondary)' }}
+            >
+              {selected.size === suggestions.length ? 'Désélectionner tout' : 'Tout sélectionner'}
+            </button>
+            <button
+              onClick={importSelected}
+              disabled={importing || selected.size === 0}
+              style={{ height: 32, padding: '0 14px', background: 'var(--color-accent-default)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 12, fontWeight: 500, cursor: importing || selected.size === 0 ? 'not-allowed' : 'pointer', color: '#fff', opacity: importing || selected.size === 0 ? 0.6 : 1 }}
+            >
+              {importing ? 'Import…' : `Importer (${selected.size})`}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 interface RisksViewProps {
   projectId: string
 }
@@ -252,6 +422,7 @@ export function RisksView({ projectId }: RisksViewProps) {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [showMatrix, setShowMatrix] = useState(false)
+  const [showAiPanel, setShowAiPanel] = useState(false)
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -336,6 +507,9 @@ export function RisksView({ projectId }: RisksViewProps) {
             <Grid3x3 size={14} strokeWidth={1.5} />
             {showMatrix ? 'Masquer matrice' : 'Matrice'}
           </button>
+          <button onClick={() => setShowAiPanel(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', background: showAiPanel ? 'var(--color-accent-subtle)' : 'none', border: `1px solid ${showAiPanel ? 'var(--color-accent-default)' : 'var(--color-border-default)'}`, borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', color: showAiPanel ? 'var(--color-accent-default)' : 'var(--color-text-secondary)' }}>
+            <Sparkles size={14} strokeWidth={1.5} /> IA
+          </button>
           <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', background: 'var(--color-accent-default)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', color: '#fff' }}>
             <Plus size={14} strokeWidth={1.5} /> Nouveau risque
           </button>
@@ -344,6 +518,11 @@ export function RisksView({ projectId }: RisksViewProps) {
 
       {/* Matrice de criticité */}
       {showMatrix && <RiskMatrix />}
+
+      {/* Panneau IA */}
+      {showAiPanel && (
+        <AiRisksPanel projectId={projectId} onImported={load} />
+      )}
 
       {/* Formulaire de création */}
       {showForm && (
