@@ -18,6 +18,7 @@ const TENDANCE_COLORS: Record<string, string> = {
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -125,5 +126,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ ok: true })
   } catch (err: unknown) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Erreur d\'envoi' }, { status: 500 })
+  }
+  } catch (err: unknown) {
+    console.error('[ai-status-report/send]', err)
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Erreur serveur inattendue' }, { status: 500 })
   }
 }
