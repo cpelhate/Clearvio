@@ -46,6 +46,7 @@ model Organization {
   smtpConfig      SmtpConfig?
   permissionRules PermissionRule[]
   milestoneTypes  MilestoneType[]
+  githubConnection GithubConnection?
 
   @@map("organizations")
 }
@@ -439,6 +440,20 @@ model Dependency {
 
   @@unique([sourceType, sourceId, targetType, targetId])
   @@map("dependencies")
+}
+
+model GithubConnection {
+  id             String   @id @default(cuid())
+  organizationId String   @unique @map("organization_id")
+  repoOwner      String   @map("repo_owner")
+  repoName       String   @map("repo_name")
+  webhookSecret  String   @map("webhook_secret")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("github_connections")
 }
 
 model ProjectDependency {

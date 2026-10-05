@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Sun, Moon, Monitor, LogOut, Download, Trash2, User, Palette, ShieldCheck,
-  Mail, Users, UserPlus, Copy, CheckCheck, RefreshCw, Send, Eye, EyeOff, Shield, Navigation, Flag, Plus, Pencil, X,
+  Mail, Users, UserPlus, Copy, CheckCheck, RefreshCw, Send, Eye, EyeOff, Shield, Navigation, Flag, Plus, Pencil, X, Github, Webhook,
 } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { createClient } from '@/lib/supabase/client'
@@ -14,7 +14,7 @@ import { useBreakpoint } from '@/lib/hooks/use-breakpoint'
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type Theme = 'light' | 'dark' | 'system'
-type Tab = 'profil' | 'general' | 'membres' | 'email' | 'droits' | 'jalons'
+type Tab = 'profil' | 'general' | 'membres' | 'email' | 'droits' | 'jalons' | 'github'
 type OrgRole = 'ADMIN' | 'MEMBRE'
 type ProjectRole = 'CO_RESPONSABLE' | 'CONTRIBUTEUR' | 'OBSERVATEUR'
 
@@ -1274,6 +1274,259 @@ function DroitsTab() {
   )
 }
 
+// ─── GithubTab ───────────────────────────────────────────────────────────────
+
+interface GithubConnection {
+  id: string
+  repoOwner: string
+  repoName: string
+  webhookSecret: string
+  createdAt: string
+}
+
+function GithubTab() {
+  const { toast } = useToast()
+  const [connection, setConnection] = useState<GithubConnection | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [repoOwner, setRepoOwner] = useState('')
+  const [repoName, setRepoName] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [showSecret, setShowSecret] = useState(false)
+  const [copiedSecret, setCopiedSecret] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/settings/github')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setConnection(data)
+          setRepoOwner(data.repoOwner)
+          setRepoName(data.repoName)
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      const res = await fetch('/api/settings/github', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoOwner: repoOwner.trim(), repoName: repoName.trim() }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setConnection(data)
+        toast('Connexion GitHub enregistrée', 'success')
+      } else {
+        const d = await res.json().catch(() => ({}))
+        toast(d.error ?? 'Erreur lors de la sauvegarde', 'error')
+      }
+    } catch {
+      toast('Erreur réseau', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete() {
+    try {
+      const res = await fetch('/api/settings/github', { method: 'DELETE' })
+      if (res.ok) {
+        setConnection(null)
+        setRepoOwner('')
+        setRepoName('')
+        toast('Connexion GitHub supprimée', 'success')
+      } else {
+        toast('Erreur lors de la suppression', 'error')
+      }
+    } catch {
+      toast('Erreur réseau', 'error')
+    }
+  }
+
+  function copySecret(secret: string) {
+    navigator.clipboard.writeText(secret).then(() => {
+      setCopiedSecret(true)
+      setTimeout(() => setCopiedSecret(false), 2000)
+    })
+  }
+
+  const webhookUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/api/github/webhook`
+    : '/api/github/webhook'
+
+  if (loading) {
+    return (
+      <div style={sectionStyle}>
+        <div style={sectionBodyStyle}>
+          <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>Chargement…</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {/* Section Connexion */}
+      <div style={sectionStyle}>
+        <div style={sectionHeaderStyle}>
+          <Github size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-tertiary)' }} />
+          <div>
+            <h2 style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>Intégration GitHub</h2>
+          </div>
+        </div>
+        <div style={sectionBodyStyle}>
+          <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.6, marginBottom: 20 }}>
+            Synchronisez automatiquement les tâches avec vos Pull Requests. Utilisez le <strong>shortName</strong> d&apos;une tâche
+            (ex. <code style={{ fontFamily: 'var(--font-mono)', background: 'var(--color-bg-tertiary)', padding: '1px 5px', borderRadius: 3 }}>WIRE-1</code>) dans le titre ou la description de vos PR.
+          </p>
+
+          <form onSubmit={handleSave}>
+            <div style={{ display: 'grid', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Propriétaire du dépôt</label>
+                  <input
+                    type="text"
+                    value={repoOwner}
+                    onChange={e => setRepoOwner(e.target.value)}
+                    placeholder="ex. mon-organisation"
+                    style={inputStyle}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Nom du dépôt</label>
+                  <input
+                    type="text"
+                    value={repoName}
+                    onChange={e => setRepoName(e.target.value)}
+                    placeholder="ex. mon-projet"
+                    style={inputStyle}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  style={{ ...btnPrimaryStyle, opacity: saving ? 0.6 : 1 }}
+                >
+                  {saving ? 'Sauvegarde…' : connection ? 'Mettre à jour' : 'Connecter'}
+                </button>
+                {connection && (
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    style={{ ...btnSecondaryStyle, color: 'var(--color-danger-default)', borderColor: 'var(--color-danger-default)' }}
+                  >
+                    <Trash2 size={14} strokeWidth={1.5} />
+                    Déconnecter
+                  </button>
+                )}
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Section Webhook (visible uniquement si connexion active) */}
+      {connection && (
+        <div style={sectionStyle}>
+          <div style={sectionHeaderStyle}>
+            <Webhook size={16} strokeWidth={1.5} style={{ color: 'var(--color-text-tertiary)' }} />
+            <h2 style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)' }}>Configuration du webhook</h2>
+          </div>
+          <div style={sectionBodyStyle}>
+            <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.6, marginBottom: 20 }}>
+              Ajoutez ce webhook dans <strong>GitHub → Settings → Webhooks</strong> de votre dépôt
+              <code style={{ fontFamily: 'var(--font-mono)', marginLeft: 4 }}>{connection.repoOwner}/{connection.repoName}</code>.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Webhook URL */}
+              <div>
+                <label style={labelStyle}>Payload URL</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    readOnly
+                    value={webhookUrl}
+                    style={{ ...inputStyle, fontFamily: 'var(--font-mono)', fontSize: 12, opacity: 0.8 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { navigator.clipboard.writeText(webhookUrl); toast('URL copiée', 'success') }}
+                    style={{ ...btnSecondaryStyle, flexShrink: 0, height: 36, padding: '0 12px' }}
+                  >
+                    <Copy size={13} strokeWidth={1.5} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Secret */}
+              <div>
+                <label style={labelStyle}>Secret</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <input
+                      readOnly
+                      type={showSecret ? 'text' : 'password'}
+                      value={connection.webhookSecret}
+                      style={{ ...inputStyle, fontFamily: 'var(--font-mono)', fontSize: 12, paddingRight: 40 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSecret(v => !v)}
+                      style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)', display: 'flex', alignItems: 'center', padding: 0 }}
+                      tabIndex={-1}
+                    >
+                      {showSecret ? <EyeOff size={14} strokeWidth={1.5} /> : <Eye size={14} strokeWidth={1.5} />}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copySecret(connection.webhookSecret)}
+                    style={{ ...btnSecondaryStyle, flexShrink: 0, height: 36, padding: '0 12px' }}
+                  >
+                    {copiedSecret ? <CheckCheck size={13} strokeWidth={1.5} style={{ color: 'var(--color-success-default)' }} /> : <Copy size={13} strokeWidth={1.5} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Instructions */}
+              <div style={{
+                padding: '14px 16px',
+                background: 'var(--color-bg-elevated)',
+                border: '1px solid var(--color-border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                fontSize: 13,
+                lineHeight: 1.7,
+                color: 'var(--color-text-secondary)',
+              }}>
+                <p style={{ fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: 8 }}>Comportements activés :</p>
+                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                  <li>PR ouverte avec <code style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>#SHORTNAME</code> → tâche passée en <strong>En révision</strong></li>
+                  <li>PR fusionnée → tâche passée en <strong>Terminée</strong></li>
+                  <li>Commit avec <code style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>#SHORTNAME</code> → commentaire automatique sur la tâche</li>
+                </ul>
+                <p style={{ marginTop: 10, fontSize: 12, color: 'var(--color-text-tertiary)' }}>
+                  Content type : <strong>application/json</strong> · Events : <strong>Pull requests</strong> + <strong>Pushes</strong>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── JalonsTab ────────────────────────────────────────────────────────────────
 
 interface MilestoneType {
@@ -1756,6 +2009,7 @@ export default function ParametresPage() {
     { key: 'email', label: 'Email', icon: <Mail size={14} strokeWidth={1.5} /> },
     { key: 'droits', label: 'Droits', icon: <Shield size={14} strokeWidth={1.5} /> },
     { key: 'jalons', label: 'Jalons', icon: <Flag size={14} strokeWidth={1.5} /> },
+    { key: 'github', label: 'GitHub', icon: <Github size={14} strokeWidth={1.5} /> },
   ]
 
   return (
@@ -1971,6 +2225,15 @@ export default function ParametresPage() {
         {activeTab === 'jalons' && !isAdmin && (
           <div style={{ color: 'var(--color-text-tertiary)', fontSize: 14, padding: 20 }}>
             Seuls les administrateurs peuvent gérer les types de jalons.
+          </div>
+        )}
+
+        {activeTab === 'github' && isAdmin && (
+          <GithubTab />
+        )}
+        {activeTab === 'github' && !isAdmin && (
+          <div style={{ color: 'var(--color-text-tertiary)', fontSize: 14, padding: 20 }}>
+            Seuls les administrateurs peuvent configurer l&apos;intégration GitHub.
           </div>
         )}
 

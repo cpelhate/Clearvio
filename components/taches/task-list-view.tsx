@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, ChevronRight, ChevronDown, Flag, Check, Trash2, X, SlidersHorizontal } from 'lucide-react'
+import { Plus, ChevronRight, ChevronDown, Flag, Check, Trash2, X, SlidersHorizontal, Sparkles } from 'lucide-react'
 import { Task, TaskStatus, TaskPriority, TASK_STATUS_COLORS, TASK_STATUS_LABELS, TASK_PRIORITY_COLORS, TASK_PRIORITY_LABELS } from '@/types/task'
 import { TaskDrawer } from './task-drawer'
 import { useToast } from '@/components/ui/toast'
@@ -205,6 +205,201 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
   )
 }
 
+interface AiTask {
+  title: string
+  description?: string
+  priority: string
+  children?: { title: string; description?: string; priority: string }[]
+}
+
+function AiGenerateModal({ projectId, projectName, onClose, onImport }: {
+  projectId: string
+  projectName?: string
+  onClose: () => void
+  onImport: (tasks: AiTask[]) => Promise<void>
+}) {
+  const [description, setDescription] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<AiTask[] | null>(null)
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [importing, setImporting] = useState(false)
+  const { toast } = useToast()
+
+  const generate = async () => {
+    if (!description.trim()) return
+    setLoading(true)
+    setResult(null)
+    try {
+      const res = await fetch('/api/ai/generate-tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description, projectName }),
+      })
+      if (!res.ok) { const d = await res.json(); toast(d.error ?? 'Erreur IA', 'error'); return }
+      const data = await res.json()
+      setResult(data.tasks ?? [])
+      setSelected(new Set((data.tasks ?? []).map((_: AiTask, i: number) => i)))
+    } catch {
+      toast('Erreur réseau', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleImport = async () => {
+    if (!result) return
+    setImporting(true)
+    const toImport = result.filter((_, i) => selected.has(i))
+    await onImport(toImport)
+    setImporting(false)
+    onClose()
+  }
+
+  const toggleSelect = (i: number) => setSelected(prev => {
+    const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n
+  })
+
+  const inputBase: React.CSSProperties = {
+    width: '100%', padding: '10px 12px', background: 'var(--color-bg-primary)',
+    border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)',
+    fontSize: 14, color: 'var(--color-text-primary)', outline: 'none',
+    fontFamily: 'var(--font-primary)', resize: 'vertical', lineHeight: 1.6,
+    boxSizing: 'border-box',
+  }
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.4)' }} />
+      <div style={{
+        position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+        zIndex: 301, width: 560, maxWidth: 'calc(100vw - 32px)', maxHeight: '90vh',
+        background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)',
+        borderRadius: 'var(--radius-xl)', boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 20px', borderBottom: '1px solid var(--color-border-subtle)' }}>
+          <Sparkles size={18} strokeWidth={1.5} style={{ color: 'var(--color-accent-default)' }} />
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Générer des tâches avec l'IA</p>
+            <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginTop: 1 }}>Décrivez ce que vous voulez accomplir</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-tertiary)', display: 'flex' }}>
+            <X size={18} strokeWidth={1.5} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflow: 'auto', padding: '20px' }}>
+          {!result ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: 6 }}>
+                  Description de la fonctionnalité ou du besoin *
+                </label>
+                <textarea
+                  autoFocus
+                  rows={5}
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Ex : Implémenter un module d'authentification avec inscription, connexion, réinitialisation du mot de passe et gestion des sessions..."
+                  style={inputBase}
+                />
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', lineHeight: 1.6 }}>
+                L'IA va générer une liste de tâches structurées que vous pourrez sélectionner avant d'importer.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)' }}>
+                  {result.length} tâche{result.length > 1 ? 's' : ''} générée{result.length > 1 ? 's' : ''} — {selected.size} sélectionnée{selected.size > 1 ? 's' : ''}
+                </p>
+                <button
+                  onClick={() => setResult(null)}
+                  style={{ fontSize: 12, color: 'var(--color-accent-default)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  ← Modifier la description
+                </button>
+              </div>
+              {result.map((task, i) => (
+                <div
+                  key={i}
+                  onClick={() => toggleSelect(i)}
+                  style={{
+                    padding: '12px 14px', borderRadius: 'var(--radius-lg)', cursor: 'pointer',
+                    border: `1px solid ${selected.has(i) ? 'var(--color-accent-default)' : 'var(--color-border-subtle)'}`,
+                    background: selected.has(i) ? 'var(--color-accent-bg)' : 'var(--color-bg-secondary)',
+                    transition: 'all 100ms',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <div style={{
+                      width: 15, height: 15, borderRadius: 3, flexShrink: 0, marginTop: 2,
+                      border: `1.5px solid ${selected.has(i) ? 'var(--color-accent-default)' : 'var(--color-border-default)'}`,
+                      background: selected.has(i) ? 'var(--color-accent-default)' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {selected.has(i) && <Check size={9} strokeWidth={2.5} style={{ color: '#fff' }} />}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: task.description ? 3 : 0 }}>{task.title}</p>
+                      {task.description && <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>{task.description}</p>}
+                      {task.children && task.children.length > 0 && (
+                        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          {task.children.map((child, j) => (
+                            <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 12 }}>
+                              <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--color-text-tertiary)', flexShrink: 0 }} />
+                              <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{child.title}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <span style={{
+                      fontSize: 10, fontWeight: 600, padding: '2px 6px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: task.priority === 'CRITIQUE' ? 'var(--color-danger-bg)' : task.priority === 'HAUTE' ? '#fff3e0' : 'var(--color-bg-tertiary)',
+                      color: task.priority === 'CRITIQUE' ? 'var(--color-danger-default)' : task.priority === 'HAUTE' ? '#e65100' : 'var(--color-text-tertiary)',
+                      flexShrink: 0,
+                    }}>{task.priority}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '14px 20px', borderTop: '1px solid var(--color-border-subtle)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ height: 34, padding: '0 14px', background: 'none', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', color: 'var(--color-text-secondary)', fontFamily: 'var(--font-primary)' }}>
+            Annuler
+          </button>
+          {!result ? (
+            <button
+              onClick={generate}
+              disabled={loading || !description.trim()}
+              style={{ height: 34, padding: '0 16px', background: 'var(--color-accent-default)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: loading || !description.trim() ? 'not-allowed' : 'pointer', color: '#fff', opacity: loading || !description.trim() ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-primary)' }}
+            >
+              <Sparkles size={14} strokeWidth={1.5} />
+              {loading ? 'Génération…' : 'Générer'}
+            </button>
+          ) : (
+            <button
+              onClick={handleImport}
+              disabled={importing || selected.size === 0}
+              style={{ height: 34, padding: '0 16px', background: 'var(--color-accent-default)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: importing || selected.size === 0 ? 'not-allowed' : 'pointer', color: '#fff', opacity: importing || selected.size === 0 ? 0.6 : 1, fontFamily: 'var(--font-primary)' }}
+            >
+              {importing ? 'Import…' : `Importer ${selected.size} tâche${selected.size > 1 ? 's' : ''}`}
+            </button>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
 export function TaskListView({ tasks, projectId, members = [], onCreateTask, onUpdateTask, onDeleteTask }: TaskListViewProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [addingChildOf, setAddingChildOf] = useState<string | null>(null)
@@ -213,6 +408,7 @@ export function TaskListView({ tasks, projectId, members = [], onCreateTask, onU
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkConfirmDelete, setBulkConfirmDelete] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)
+  const [showAiModal, setShowAiModal] = useState(false)
   const { toast } = useToast()
   const [bulkStatusVal, setBulkStatusVal] = useState('')
   const [bulkPriorityVal, setBulkPriorityVal] = useState('')
@@ -386,6 +582,20 @@ export function TaskListView({ tasks, projectId, members = [], onCreateTask, onU
             </div>
           )}
           <button
+            onClick={() => setShowAiModal(true)}
+            title="Générer des tâches avec l'IA"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5, height: 24, padding: '0 10px',
+              border: '1px solid var(--color-border-default)', borderRadius: 20,
+              background: 'transparent', color: 'var(--color-text-tertiary)',
+              fontSize: 11, fontWeight: 500, cursor: 'pointer',
+              fontFamily: 'var(--font-primary)', flexShrink: 0,
+            }}
+          >
+            <Sparkles size={11} strokeWidth={1.5} />
+            IA
+          </button>
+          <button
             onClick={() => setShowFilterPanel(v => !v)}
             style={{
               display: 'flex', alignItems: 'center', gap: 5, height: 24, padding: '0 10px',
@@ -496,6 +706,28 @@ export function TaskListView({ tasks, projectId, members = [], onCreateTask, onU
           )}
         </div>
       </div>
+
+      {/* AI Generate Modal */}
+      {showAiModal && (
+        <AiGenerateModal
+          projectId={projectId}
+          onClose={() => setShowAiModal(false)}
+          onImport={async (aiTasks) => {
+            for (const aiTask of aiTasks) {
+              const created = await onCreateTask({ title: aiTask.title }) as { id?: string } | undefined
+              if (created && aiTask.children?.length) {
+                const parentId = (created as { id?: string })?.id
+                if (parentId) {
+                  for (const child of aiTask.children) {
+                    await onCreateTask({ title: child.title, parentId })
+                  }
+                }
+              }
+            }
+            toast(`${aiTasks.length} tâche${aiTasks.length > 1 ? 's' : ''} importée${aiTasks.length > 1 ? 's' : ''}`)
+          }}
+        />
+      )}
 
       {/* Task drawer */}
       <TaskDrawer
