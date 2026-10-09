@@ -281,6 +281,7 @@ export function DocumentsView({ projectId }: { projectId: string }) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [editingDoc, setEditingDoc] = useState<Document | null>(null)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
+  const [uploadErrors, setUploadErrors] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const { limits } = usePlan()
@@ -299,26 +300,40 @@ export function DocumentsView({ projectId }: { projectId: string }) {
   useEffect(() => { load() }, [load])
 
   const handleFiles = async (files: FileList) => {
-    if (!limits.documents) { setUpgradeOpen(true); return }
+    if (!limits.documents) {
+      toast(
+        'Le stockage de documents est réservé aux plans Pro et Business.',
+        'error',
+        { action: { label: 'Voir les tarifs', href: '/tarifs' } }
+      )
+      setUpgradeOpen(true)
+      return
+    }
     if (!files.length) return
 
     const supabase = createClient()
     setUploading(true)
+    setUploadErrors([])
+    const errors: string[] = []
 
     for (const file of Array.from(files)) {
-      // Validation côté client
+      // Validation format
       if (!Object.keys(ALLOWED_MIME).includes(file.type)) {
-        toast(`Format non autorisé : ${file.name}. Formats acceptés : PDF, Word, Excel, images.`, 'error')
+        errors.push(`"${file.name}" — format non accepté. Formats autorisés : PDF, Word (.doc, .docx), Excel (.xls, .xlsx), images (JPG, PNG, GIF, WEBP, SVG).`)
         continue
       }
+      // Validation taille
       if (file.size > 50 * 1024 * 1024) {
-        toast(`Fichier trop volumineux : ${file.name} (max 50 Mo)`, 'error')
+        errors.push(`"${file.name}" — fichier trop volumineux (${(file.size / (1024 * 1024)).toFixed(1)} Mo). La taille maximale est de 50 Mo par fichier.`)
         continue
       }
 
       const storagePath = `${projectId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
       const { error: uploadError } = await supabase.storage.from(BUCKET).upload(storagePath, file)
-      if (uploadError) { toast(`Échec upload : ${file.name}`, 'error'); continue }
+      if (uploadError) {
+        errors.push(`"${file.name}" — échec de l'envoi vers le stockage. Veuillez réessayer.`)
+        continue
+      }
 
       const res = await fetch(`/api/projects/${projectId}/documents`, {
         method: 'POST',
@@ -327,13 +342,22 @@ export function DocumentsView({ projectId }: { projectId: string }) {
       })
       if (!res.ok) {
         const d = await res.json()
-        toast(d.error ?? `Erreur lors de l'enregistrement de ${file.name}`, 'error')
-        // Nettoyer le fichier uploadé si l'enregistrement échoue
+        // Récupérer l'usage actuel pour les erreurs de quota
+        let errorMsg = d.error ?? `Erreur lors de l'enregistrement de "${file.name}".`
+        if (d.error?.includes('Quota')) {
+          const usageRes = await fetch(`/api/projects/${projectId}/documents/usage`)
+          if (usageRes.ok) {
+            const { used, quota } = await usageRes.json()
+            errorMsg = `"${file.name}" — quota de stockage atteint (${formatSize(used)} utilisés sur ${formatSize(quota)} autorisés). Supprimez des fichiers ou passez au plan Business.`
+          }
+        }
+        errors.push(errorMsg)
         await supabase.storage.from(BUCKET).remove([storagePath])
       }
     }
 
     setUploading(false)
+    if (errors.length > 0) setUploadErrors(errors)
     await load()
   }
 
@@ -405,6 +429,30 @@ export function DocumentsView({ projectId }: { projectId: string }) {
           onChange={e => e.target.files && handleFiles(e.target.files)}
         />
       </div>
+
+      {/* Zone d'erreurs persistante */}
+      {uploadErrors.length > 0 && (
+        <div style={{
+          border: '1px solid #fca5a5', borderRadius: 'var(--radius-lg)',
+          background: '#fef2f2', padding: '14px 16px', marginBottom: 20,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: uploadErrors.length > 1 ? 10 : 0 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: '#b91c1c', marginBottom: uploadErrors.length > 1 ? 8 : 0 }}>
+              {uploadErrors.length === 1 ? 'Échec d\'envoi' : `${uploadErrors.length} fichiers non envoyés`}
+            </p>
+            <button onClick={() => setUploadErrors([])} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c', display: 'flex', padding: 2, flexShrink: 0 }}>
+              <X size={14} strokeWidth={1.5} />
+            </button>
+          </div>
+          <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {uploadErrors.map((err, i) => (
+              <li key={i} style={{ fontSize: 13, color: '#991b1b', lineHeight: 1.5, paddingLeft: 12, borderLeft: '2px solid #fca5a5' }}>
+                {err}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Liste des documents */}
       {loading ? (
