@@ -1,11 +1,9 @@
 /* === CLEARVIO DESIGN TOKENS === */
 /* Version 1.0 — Mai 2026 */
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&family=DM+Mono:wght@400;500&display=swap');
-
 :root {
-  --font-primary: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'DM Mono', 'Fira Code', monospace;
+  --font-primary: var(--font-dm-sans, 'DM Sans'), -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: var(--font-dm-mono, 'DM Mono'), 'Fira Code', monospace;
 
   --text-xs:   11px;
   --text-sm:   13px;
@@ -65,18 +63,22 @@
   --color-accent-text:    #FFFFFF;
 
   --color-success-bg:      #ECFDF5;
+  --color-success-subtle:  #A7F3D0;
   --color-success-default: #0F7B55;
   --color-success-text:    #065F46;
 
   --color-warning-bg:      #FFFBEB;
+  --color-warning-subtle:  #FDE68A;
   --color-warning-default: #8A5C00;
   --color-warning-text:    #78350F;
 
   --color-danger-bg:       #FEF2F2;
+  --color-danger-subtle:   #FECACA;
   --color-danger-default:  #B91C1C;
   --color-danger-text:     #991B1B;
 
   --color-info-bg:         #EEF2FF;
+  --color-info-subtle:     #C7D2F5;
   --color-info-default:    #1D3461;
   --color-info-text:       #152649;
 
@@ -85,6 +87,8 @@
 }
 
 html.dark {
+  color-scheme: dark;
+
   --color-bg-primary:    #0D0F14;
   --color-bg-secondary:  #141720;
   --color-bg-tertiary:   #1C1F2B;
@@ -106,18 +110,22 @@ html.dark {
   --color-accent-text:    #FFFFFF;
 
   --color-success-bg:      #052E16;
+  --color-success-subtle:  #065F46;
   --color-success-default: #2ECC8F;
   --color-success-text:    #6EE7B7;
 
   --color-warning-bg:      #1C1200;
+  --color-warning-subtle:  #78350F;
   --color-warning-default: #F5A623;
   --color-warning-text:    #FCD34D;
 
   --color-danger-bg:       #1F0707;
+  --color-danger-subtle:   #7F1D1D;
   --color-danger-default:  #F87171;
   --color-danger-text:     #FCA5A5;
 
   --color-info-bg:         #1A2040;
+  --color-info-subtle:     #263060;
   --color-info-default:    #4D72C8;
   --color-info-text:       #6B8FE3;
 }
@@ -141,16 +149,14 @@ html.dark {
 .surface-glass {
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
+  will-change: transform;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset, 0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.05);
 }
 
 html.dark .surface-glass {
   background: rgba(20, 23, 32, 0.80);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 32px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.20);
-}
-
-:not(.dark) .surface-glass {
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset, 0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.05);
 }
