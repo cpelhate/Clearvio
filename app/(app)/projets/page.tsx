@@ -97,13 +97,16 @@ function ProgressBar({ pct, health }: { pct: number; health: Health }) {
 
 function MemberAvatars({ count }: { count: number }) {
   const shown = Math.min(count, 3)
-  const colors = ['var(--color-accent-default)', '#2563eb', '#7c3aed', '#0f766e', '#d97706']
+  const avatarColors = [
+    'var(--color-avatar-1)', 'var(--color-avatar-2)',
+    'var(--color-avatar-3)', 'var(--color-avatar-4)', 'var(--color-avatar-5)',
+  ]
   return (
     <div style={{ display: 'flex' }}>
       {Array.from({ length: shown }, (_, i) => (
         <div key={i} style={{
           width: 22, height: 22, borderRadius: '50%',
-          background: colors[i % colors.length], color: '#fff',
+          background: avatarColors[i % avatarColors.length], color: 'var(--color-accent-text)',
           fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
           border: '2px solid var(--color-bg-secondary)',
           marginLeft: i === 0 ? 0 : -6,
@@ -521,7 +524,7 @@ export default function ProjetsPage() {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, height: 34, padding: '0 16px', background: 'var(--color-accent-default)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', color: '#fff', flexShrink: 0, fontFamily: 'var(--font-primary)' }}
+            className="btn btn-primary btn-sm" style={{ flexShrink: 0 }}
           >
             <Plus size={15} strokeWidth={1.5} /> Nouveau projet
           </button>
@@ -560,7 +563,7 @@ export default function ProjetsPage() {
         {loading && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
             {[1, 2, 3, 4].map(i => (
-              <div key={i} style={{ height: 180, background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-lg)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+              <div key={i} className="skeleton" style={{ height: 180, borderRadius: 'var(--radius-lg)' }} />
             ))}
           </div>
         )}
@@ -571,7 +574,7 @@ export default function ProjetsPage() {
             <FolderKanban size={48} strokeWidth={1.5} style={{ color: 'var(--color-text-tertiary)' }} />
             <p style={{ fontSize: 18, fontWeight: 600, color: 'var(--color-text-primary)' }}>Aucun projet</p>
             <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', textAlign: 'center', maxWidth: 300 }}>Créez votre premier projet pour commencer.</p>
-            <button onClick={() => setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, height: 34, padding: '0 16px', background: 'var(--color-accent-default)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', color: '#fff', fontFamily: 'var(--font-primary)' }}>
+            <button onClick={() => setShowModal(true)} className="btn btn-primary btn-sm">
               <Plus size={15} strokeWidth={1.5} /> Créer un projet
             </button>
           </div>

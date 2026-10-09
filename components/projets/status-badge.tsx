@@ -12,7 +12,7 @@ export function StatusBadge({ status }: { status: ProjectStatus }) {
       letterSpacing: '0.02em',
       color: PROJECT_STATUS_COLORS[status],
       background: PROJECT_STATUS_BG[status],
-      border: `1px solid ${PROJECT_STATUS_COLORS[status]}22`,
+      border: `1px solid color-mix(in srgb, ${PROJECT_STATUS_COLORS[status]} 30%, transparent)`,
       whiteSpace: 'nowrap',
     }}>
       {PROJECT_STATUS_LABELS[status]}

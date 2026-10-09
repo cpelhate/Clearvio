@@ -119,17 +119,6 @@ export function TaskComments({ projectId, taskId, currentUserId }: TaskCommentsP
     }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '8px 12px',
-    border: '1px solid var(--color-border-default)',
-    borderRadius: 'var(--radius-md)', fontSize: 14,
-    background: 'var(--color-bg-primary)',
-    color: 'var(--color-text-primary)', outline: 'none',
-    fontFamily: 'var(--font-primary)',
-    resize: 'vertical', lineHeight: 1.6,
-    boxSizing: 'border-box',
-  }
-
   return (
     <div style={{ marginTop: 32 }}>
       {/* Header */}
@@ -201,30 +190,15 @@ export function TaskComments({ projectId, taskId, currentUserId }: TaskCommentsP
                           value={editContent}
                           onChange={e => setEditContent(e.target.value)}
                           rows={3}
-                          style={{ ...inputStyle, marginBottom: 8 }}
+                          className="form-textarea"
+                          style={{ marginBottom: 8 }}
                           autoFocus
                         />
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <button
-                            onClick={() => saveEdit(comment.id)}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 4,
-                              padding: '4px 10px', fontSize: 12,
-                              background: 'var(--color-accent-default)', color: '#fff',
-                              border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer',
-                            }}
-                          >
+                          <button onClick={() => saveEdit(comment.id)} className="btn btn-primary btn-sm">
                             <Check size={12} strokeWidth={1.5} /> Sauvegarder
                           </button>
-                          <button
-                            onClick={cancelEdit}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 4,
-                              padding: '4px 10px', fontSize: 12,
-                              background: 'none', color: 'var(--color-text-secondary)',
-                              border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', cursor: 'pointer',
-                            }}
-                          >
+                          <button onClick={cancelEdit} className="btn btn-secondary btn-sm">
                             <X size={12} strokeWidth={1.5} /> Annuler
                           </button>
                         </div>
@@ -251,20 +225,14 @@ export function TaskComments({ projectId, taskId, currentUserId }: TaskCommentsP
           onKeyDown={handleKeyDown}
           rows={3}
           placeholder="Ajouter un commentaire... (Ctrl+Entrée pour envoyer)"
-          style={{ ...inputStyle, marginBottom: 8 }}
+          className="form-textarea"
+          style={{ marginBottom: 8 }}
         />
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             onClick={handleSubmit}
             disabled={!newContent.trim() || submitting}
-            style={{
-              padding: '6px 16px', fontSize: 13,
-              background: newContent.trim() ? 'var(--color-accent-default)' : 'var(--color-bg-tertiary)',
-              color: newContent.trim() ? '#fff' : 'var(--color-text-disabled)',
-              border: 'none', borderRadius: 'var(--radius-md)',
-              cursor: newContent.trim() ? 'pointer' : 'default',
-              transition: 'background 150ms',
-            }}
+            className="btn btn-primary btn-sm"
           >
             {submitting ? 'Envoi...' : 'Envoyer'}
           </button>

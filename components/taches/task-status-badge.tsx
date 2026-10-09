@@ -8,7 +8,7 @@ export function TaskStatusBadge({ status }: { status: TaskStatus }) {
       fontSize: 11, fontWeight: 500, letterSpacing: '0.02em',
       color: TASK_STATUS_COLORS[status],
       background: TASK_STATUS_BG[status],
-      border: `1px solid ${TASK_STATUS_COLORS[status]}22`,
+      border: `1px solid color-mix(in srgb, ${TASK_STATUS_COLORS[status]} 30%, transparent)`,
       whiteSpace: 'nowrap',
     }}>
       {TASK_STATUS_LABELS[status]}

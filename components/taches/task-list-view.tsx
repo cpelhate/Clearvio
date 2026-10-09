@@ -102,7 +102,7 @@ function TaskRow({ task, depth, onSelect, onCreateChild, onStatusChange, addingC
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
-          {isSelected && <Check size={10} strokeWidth={2.5} style={{ color: '#fff' }} />}
+          {isSelected && <Check size={10} strokeWidth={1.5} style={{ color: 'var(--color-accent-text)' }} />}
         </div>
 
         <button
@@ -343,7 +343,7 @@ function AiGenerateModal({ projectId, projectName, onClose, onImport }: {
                       background: selected.has(i) ? 'var(--color-accent-default)' : 'transparent',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      {selected.has(i) && <Check size={9} strokeWidth={2.5} style={{ color: '#fff' }} />}
+                      {selected.has(i) && <Check size={9} strokeWidth={1.5} style={{ color: 'var(--color-accent-text)' }} />}
                     </div>
                     <div style={{ flex: 1 }}>
                       <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: task.description ? 3 : 0 }}>{task.title}</p>
@@ -362,8 +362,8 @@ function AiGenerateModal({ projectId, projectName, onClose, onImport }: {
                     <span style={{
                       fontSize: 10, fontWeight: 600, padding: '2px 6px',
                       borderRadius: 'var(--radius-sm)',
-                      background: task.priority === 'CRITIQUE' ? 'var(--color-danger-bg)' : task.priority === 'HAUTE' ? '#fff3e0' : 'var(--color-bg-tertiary)',
-                      color: task.priority === 'CRITIQUE' ? 'var(--color-danger-default)' : task.priority === 'HAUTE' ? '#e65100' : 'var(--color-text-tertiary)',
+                      background: task.priority === 'CRITIQUE' ? 'var(--color-danger-bg)' : task.priority === 'HAUTE' ? 'var(--color-warning-bg)' : 'var(--color-bg-tertiary)',
+                      color: task.priority === 'CRITIQUE' ? 'var(--color-danger-default)' : task.priority === 'HAUTE' ? 'var(--color-warning-default)' : 'var(--color-text-tertiary)',
                       flexShrink: 0,
                     }}>{task.priority}</span>
                   </div>
@@ -375,14 +375,14 @@ function AiGenerateModal({ projectId, projectName, onClose, onImport }: {
 
         {/* Footer */}
         <div style={{ padding: '14px 20px', borderTop: '1px solid var(--color-border-subtle)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{ height: 34, padding: '0 14px', background: 'none', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', color: 'var(--color-text-secondary)', fontFamily: 'var(--font-primary)' }}>
+          <button onClick={onClose} className="btn btn-secondary btn-sm">
             Annuler
           </button>
           {!result ? (
             <button
               onClick={generate}
               disabled={loading || !description.trim()}
-              style={{ height: 34, padding: '0 16px', background: 'var(--color-accent-default)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: loading || !description.trim() ? 'not-allowed' : 'pointer', color: '#fff', opacity: loading || !description.trim() ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-primary)' }}
+              className="btn btn-primary btn-sm" style={{ opacity: loading || !description.trim() ? 0.6 : 1 }}
             >
               <Sparkles size={14} strokeWidth={1.5} />
               {loading ? 'Génération…' : 'Générer'}
@@ -391,7 +391,7 @@ function AiGenerateModal({ projectId, projectName, onClose, onImport }: {
             <button
               onClick={handleImport}
               disabled={importing || selected.size === 0}
-              style={{ height: 34, padding: '0 16px', background: 'var(--color-accent-default)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: importing || selected.size === 0 ? 'not-allowed' : 'pointer', color: '#fff', opacity: importing || selected.size === 0 ? 0.6 : 1, fontFamily: 'var(--font-primary)' }}
+              className="btn btn-primary btn-sm" style={{ opacity: importing || selected.size === 0 ? 0.6 : 1 }}
             >
               {importing ? 'Import…' : `Importer ${selected.size} tâche${selected.size > 1 ? 's' : ''}`}
             </button>
@@ -554,7 +554,7 @@ export function TaskListView({ tasks, projectId, members = [], onCreateTask, onU
               transition: 'background 100ms, border-color 100ms',
             }}
           >
-            {allSelected && <Check size={10} strokeWidth={2.5} style={{ color: '#fff' }} />}
+            {allSelected && <Check size={10} strokeWidth={1.5} style={{ color: 'var(--color-accent-text)' }} />}
             {someSelected && <div style={{ width: 7, height: 2, background: 'var(--color-text-tertiary)', borderRadius: 1 }} />}
           </div>
           <div style={{ width: 18, flexShrink: 0 }} />
@@ -632,7 +632,7 @@ export function TaskListView({ tasks, projectId, members = [], onCreateTask, onU
                 <>
                   <p style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary)' }}>Aucune tâche trouvée</p>
                   <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>Aucune tâche ne correspond aux filtres actifs.</p>
-                  <button onClick={clearFilters} style={{ height: 32, padding: '0 14px', background: 'none', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--color-text-secondary)', cursor: 'pointer', fontFamily: 'var(--font-primary)' }}>
+                  <button onClick={clearFilters} className="btn btn-secondary btn-sm">
                     Effacer les filtres
                   </button>
                 </>
@@ -642,7 +642,7 @@ export function TaskListView({ tasks, projectId, members = [], onCreateTask, onU
                   <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)' }}>Commencez par créer votre première tâche.</p>
                   <button
                     onClick={() => setAddingRoot(true)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px', background: 'var(--color-accent-default)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', color: '#fff' }}
+                    className="btn btn-primary btn-sm"
                   >
                     <Plus size={14} strokeWidth={1.5} /> Nouvelle tâche
                   </button>

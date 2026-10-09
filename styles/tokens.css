@@ -84,6 +84,13 @@
 
   --sidebar-width-expanded:  240px;
   --sidebar-width-collapsed: 64px;
+
+  /* Avatar colors — palette dédiée pour les avatars empilés */
+  --color-avatar-1: var(--color-accent-default);
+  --color-avatar-2: #4861C8;
+  --color-avatar-3: #7C5CFC;
+  --color-avatar-4: #0E8A72;
+  --color-avatar-5: #B45309;
 }
 
 html.dark {

@@ -58,20 +58,6 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
     }
   }
 
-  const inputStyle = {
-    width: '100%', height: 36, padding: '0 12px',
-    border: '1px solid var(--color-border-default)',
-    borderRadius: 'var(--radius-md)', fontSize: 14,
-    background: 'var(--color-bg-primary)',
-    color: 'var(--color-text-primary)', outline: 'none',
-    fontFamily: 'var(--font-primary)',
-  }
-
-  const labelStyle = {
-    display: 'block', fontSize: 13, fontWeight: 500,
-    color: 'var(--color-text-secondary)', marginBottom: 6,
-  }
-
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 100,
@@ -121,26 +107,26 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Nom */}
             <div>
-              <label style={labelStyle}>Nom du projet *</label>
+              <label className="form-label">Nom du projet *</label>
               <input
                 type="text" value={form.name} onChange={e => update('name', e.target.value)}
-                placeholder="Ex : Refonte site web" style={inputStyle} autoFocus
+                placeholder="Ex : Refonte site web" className="form-input" autoFocus
               />
             </div>
             {/* Description */}
             <div>
-              <label style={labelStyle}>Description</label>
+              <label className="form-label">Description</label>
               <textarea
                 value={form.description} onChange={e => update('description', e.target.value)}
                 placeholder="Décrivez les objectifs du projet..."
                 rows={3}
-                style={{ ...inputStyle, height: 'auto', padding: '10px 12px', resize: 'vertical' }}
+                className="form-textarea"
               />
             </div>
             {/* Statut */}
             <div>
-              <label style={labelStyle}>Statut initial</label>
-              <select value={form.status} onChange={e => update('status', e.target.value)} style={inputStyle}>
+              <label className="form-label">Statut initial</label>
+              <select value={form.status} onChange={e => update('status', e.target.value)} className="form-input">
                 {STATUS_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
@@ -148,7 +134,7 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
             </div>
             {/* Couleur */}
             <div>
-              <label style={labelStyle}>Couleur du projet</label>
+              <label className="form-label">Couleur du projet</label>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {PROJECT_COLORS.map(c => (
                   <button
@@ -168,20 +154,20 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
             {/* Dates */}
             <div style={{ display: 'flex', gap: 16 }}>
               <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Date de début</label>
-                <input type="date" value={form.startDate} onChange={e => update('startDate', e.target.value)} style={inputStyle} />
+                <label className="form-label">Date de début</label>
+                <input type="date" value={form.startDate} onChange={e => update('startDate', e.target.value)} className="form-input" />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Date de fin prévue</label>
-                <input type="date" value={form.endDate} onChange={e => update('endDate', e.target.value)} style={inputStyle} />
+                <label className="form-label">Date de fin prévue</label>
+                <input type="date" value={form.endDate} onChange={e => update('endDate', e.target.value)} className="form-input" />
               </div>
             </div>
             {/* Catégorie */}
             <div>
-              <label style={labelStyle}>Catégorie</label>
+              <label className="form-label">Catégorie</label>
               <input
                 type="text" value={form.category} onChange={e => update('category', e.target.value)}
-                placeholder="Ex : Informatique, Marketing, RH..." style={inputStyle}
+                placeholder="Ex : Informatique, Marketing, RH..." className="form-input"
               />
             </div>
             <div style={{
@@ -205,12 +191,7 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
         {/* Actions */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28, gap: 12 }}>
           {step === 2 ? (
-            <button onClick={() => setStep(1)} style={{
-              display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 16px',
-              background: 'transparent', border: '1px solid var(--color-border-default)',
-              borderRadius: 'var(--radius-md)', fontSize: 14, cursor: 'pointer',
-              color: 'var(--color-text-primary)',
-            }}>
+            <button onClick={() => setStep(1)} className="btn btn-secondary">
               <ChevronLeft size={16} strokeWidth={1.5} /> Retour
             </button>
           ) : <div />}
@@ -218,24 +199,14 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
           {step === 1 ? (
             <button
               onClick={() => { if (!form.name.trim()) { setError('Le nom est requis.'); return } setError(null); setStep(2) }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 16px',
-                background: 'var(--color-accent-default)', border: 'none',
-                borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 500,
-                cursor: 'pointer', color: '#fff',
-              }}
+              className="btn btn-primary"
             >
               Continuer <ChevronRight size={16} strokeWidth={1.5} />
             </button>
           ) : (
             <button
               onClick={handleSubmit} disabled={loading}
-              style={{
-                height: 36, padding: '0 20px',
-                background: loading ? 'var(--color-accent-subtle)' : 'var(--color-accent-default)',
-                border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 500,
-                cursor: loading ? 'not-allowed' : 'pointer', color: '#fff',
-              }}
+              className="btn btn-primary"
             >
               {loading ? 'Création...' : 'Créer le projet'}
             </button>

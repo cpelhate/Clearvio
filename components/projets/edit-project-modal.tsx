@@ -75,20 +75,6 @@ export function EditProjectModal({ project, open, onClose, onSaved, onDeleted }:
     }
   }
 
-  const inputStyle = {
-    width: '100%', height: 36, padding: '0 12px',
-    border: '1px solid var(--color-border-default)',
-    borderRadius: 'var(--radius-md)', fontSize: 14,
-    background: 'var(--color-bg-primary)',
-    color: 'var(--color-text-primary)', outline: 'none',
-    fontFamily: 'var(--font-primary)',
-  }
-
-  const labelStyle = {
-    display: 'block' as const, fontSize: 13, fontWeight: 500,
-    color: 'var(--color-text-secondary)', marginBottom: 6,
-  }
-
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }} />
@@ -111,39 +97,39 @@ export function EditProjectModal({ project, open, onClose, onSaved, onDeleted }:
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div>
-            <label style={labelStyle}>Nom du projet *</label>
-            <input type="text" value={form.name} onChange={e => update('name', e.target.value)} style={inputStyle} autoFocus />
+            <label className="form-label">Nom du projet *</label>
+            <input type="text" value={form.name} onChange={e => update('name', e.target.value)} className="form-input" autoFocus />
           </div>
           <div>
-            <label style={labelStyle}>Description</label>
+            <label className="form-label">Description</label>
             <textarea value={form.description} onChange={e => update('description', e.target.value)} rows={3}
-              style={{ ...inputStyle, height: 'auto', padding: '10px 12px', resize: 'vertical' as const }} />
+              className="form-textarea" />
           </div>
           <div style={{ display: 'flex', gap: 16 }}>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Statut</label>
-              <select value={form.status} onChange={e => update('status', e.target.value)} style={inputStyle}>
+              <label className="form-label">Statut</label>
+              <select value={form.status} onChange={e => update('status', e.target.value)} className="form-input">
                 {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
               </select>
             </div>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Catégorie</label>
+              <label className="form-label">Catégorie</label>
               <input type="text" value={form.category} onChange={e => update('category', e.target.value)}
-                placeholder="Ex : Informatique, RH..." style={inputStyle} />
+                placeholder="Ex : Informatique, RH..." className="form-input" />
             </div>
           </div>
           <div style={{ display: 'flex', gap: 16 }}>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Date de début</label>
-              <input type="date" value={form.startDate} onChange={e => update('startDate', e.target.value)} style={inputStyle} />
+              <label className="form-label">Date de début</label>
+              <input type="date" value={form.startDate} onChange={e => update('startDate', e.target.value)} className="form-input" />
             </div>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Date de fin prévue</label>
-              <input type="date" value={form.endDate} onChange={e => update('endDate', e.target.value)} style={inputStyle} />
+              <label className="form-label">Date de fin prévue</label>
+              <input type="date" value={form.endDate} onChange={e => update('endDate', e.target.value)} className="form-input" />
             </div>
           </div>
           <div>
-            <label style={labelStyle}>Couleur</label>
+            <label className="form-label">Couleur</label>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {PROJECT_COLORS.map(c => (
                 <button key={c} onClick={() => update('color', c)} style={{
@@ -166,33 +152,18 @@ export function EditProjectModal({ project, open, onClose, onSaved, onDeleted }:
           <button
             onClick={handleDelete}
             disabled={loading}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px',
-              background: confirmDelete ? 'var(--color-danger-default)' : 'transparent',
-              border: `1px solid ${confirmDelete ? 'var(--color-danger-default)' : 'var(--color-border-default)'}`,
-              borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer',
-              color: confirmDelete ? '#fff' : 'var(--color-danger-default)',
-            }}
+            className={confirmDelete ? 'btn btn-danger' : 'btn btn-secondary'}
+            style={{ color: confirmDelete ? undefined : 'var(--color-danger-default)', borderColor: confirmDelete ? undefined : 'var(--color-danger-subtle)' }}
           >
             <Trash2 size={14} strokeWidth={1.5} />
             {confirmDelete ? 'Confirmer la suppression' : 'Supprimer'}
           </button>
 
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={onClose} style={{
-              height: 36, padding: '0 16px', background: 'transparent',
-              border: '1px solid var(--color-border-default)',
-              borderRadius: 'var(--radius-md)', fontSize: 14, cursor: 'pointer',
-              color: 'var(--color-text-primary)',
-            }}>
+            <button onClick={onClose} className="btn btn-secondary">
               Annuler
             </button>
-            <button onClick={handleSave} disabled={loading} style={{
-              height: 36, padding: '0 20px',
-              background: loading ? 'var(--color-accent-subtle)' : 'var(--color-accent-default)',
-              border: 'none', borderRadius: 'var(--radius-md)', fontSize: 14, fontWeight: 500,
-              cursor: loading ? 'not-allowed' : 'pointer', color: '#fff',
-            }}>
+            <button onClick={handleSave} disabled={loading} className="btn btn-primary">
               {loading ? 'Enregistrement...' : 'Enregistrer'}
             </button>
           </div>
