@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { getAnthropicClient } from '@/lib/anthropic'
+import { PLAN_LIMITS } from '@/lib/plans'
 
 type WriteMode = 'user-stories' | 'spec' | 'test-plan'
 
@@ -99,6 +100,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
+    const member = await prisma.organizationMember.findFirst({
+      where: { userId: user.id },
+      include: { organization: { select: { plan: true } } },
+    })
+    const plan = (member?.organization?.plan ?? 'FREE') as keyof typeof PLAN_LIMITS
+    if (!PLAN_LIMITS[plan].ai) {
+      return NextResponse.json({ error: 'Fonctionnalité réservée au plan Pro ou Business' }, { status: 403 })
+    }
 
     const body = await request.json()
     const { mode, prompt: userPrompt } = body as { mode: WriteMode; prompt: string }

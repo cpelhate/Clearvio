@@ -23,6 +23,8 @@ import { DependenciesView } from '@/components/dependencies/dependencies-view'
 import { CalendarView } from '@/components/calendrier/calendar-view'
 import { AiStatusReportModal } from '@/components/projets/ai-status-report-modal'
 import { AiWritingModal } from '@/components/projets/ai-writing-modal'
+import { UpgradeModal } from '@/components/billing/upgrade-modal'
+import { usePlan } from '@/hooks/use-plan'
 import { ProjectMember } from '@/types/project'
 import { Milestone } from '@/types/milestone'
 import { useBreakpoint } from '@/lib/hooks/use-breakpoint'
@@ -56,6 +58,8 @@ export default function ProjetPage() {
   const [showSettings, setShowSettings] = useState(false)
   const [showAiReport, setShowAiReport] = useState(false)
   const [showAiWriting, setShowAiWriting] = useState(false)
+  const [upgradeFeature, setUpgradeFeature] = useState<string | null>(null)
+  const { limits } = usePlan()
 
   useEffect(() => {
     fetch(`/api/projects/${id}`)
@@ -170,7 +174,7 @@ export default function ProjetPage() {
             </div>
             <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
               <button
-                onClick={() => setShowAiWriting(true)}
+                onClick={() => limits.ai ? setShowAiWriting(true) : setUpgradeFeature('la rédaction assistée par IA')}
                 title="Rédaction assistée par IA"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px',
@@ -182,7 +186,7 @@ export default function ProjetPage() {
                 <FileText size={14} strokeWidth={1.5} />{bp !== 'mobile' && ' Rédiger'}
               </button>
               <button
-                onClick={() => setShowAiReport(true)}
+                onClick={() => limits.ai ? setShowAiReport(true) : setUpgradeFeature('le rapport de statut IA')}
                 title="Rapport de statut IA"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px',
@@ -272,6 +276,8 @@ export default function ProjetPage() {
       {showAiReport && (
         <AiStatusReportModal projectId={id} onClose={() => setShowAiReport(false)} />
       )}
+
+      {upgradeFeature && <UpgradeModal feature={upgradeFeature} onClose={() => setUpgradeFeature(null)} />}
 
       {project && showSettings && (
         <EditProjectModal

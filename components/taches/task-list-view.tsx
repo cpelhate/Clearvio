@@ -5,6 +5,8 @@ import { Plus, ChevronRight, ChevronDown, Flag, Check, Trash2, X, SlidersHorizon
 import { Task, TaskStatus, TaskPriority, TASK_STATUS_COLORS, TASK_STATUS_LABELS, TASK_PRIORITY_COLORS, TASK_PRIORITY_LABELS } from '@/types/task'
 import { TaskDrawer } from './task-drawer'
 import { useToast } from '@/components/ui/toast'
+import { usePlan } from '@/hooks/use-plan'
+import { UpgradeModal } from '@/components/billing/upgrade-modal'
 
 interface MemberInfo { userId: string; name: string | null }
 interface MilestoneInfo { id: string; title: string }
@@ -409,6 +411,8 @@ export function TaskListView({ tasks, projectId, members = [], onCreateTask, onU
   const [bulkConfirmDelete, setBulkConfirmDelete] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)
   const [showAiModal, setShowAiModal] = useState(false)
+  const [upgradeFeature, setUpgradeFeature] = useState<string | null>(null)
+  const { limits } = usePlan()
   const { toast } = useToast()
   const [bulkStatusVal, setBulkStatusVal] = useState('')
   const [bulkPriorityVal, setBulkPriorityVal] = useState('')
@@ -582,7 +586,7 @@ export function TaskListView({ tasks, projectId, members = [], onCreateTask, onU
             </div>
           )}
           <button
-            onClick={() => setShowAiModal(true)}
+            onClick={() => limits.ai ? setShowAiModal(true) : setUpgradeFeature('la génération de tâches par IA')}
             title="Générer des tâches avec l'IA"
             style={{
               display: 'flex', alignItems: 'center', gap: 5, height: 24, padding: '0 10px',
@@ -728,6 +732,8 @@ export function TaskListView({ tasks, projectId, members = [], onCreateTask, onU
           }}
         />
       )}
+
+      {upgradeFeature && <UpgradeModal feature={upgradeFeature} onClose={() => setUpgradeFeature(null)} />}
 
       {/* Task drawer */}
       <TaskDrawer

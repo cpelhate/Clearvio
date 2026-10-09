@@ -33,13 +33,18 @@ model Notification {
 }
 
 model Organization {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  logo        String?
-  timezone    String   @default("Europe/Paris")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                     String       @id @default(cuid())
+  name                   String
+  slug                   String       @unique
+  logo                   String?
+  timezone               String       @default("Europe/Paris")
+  plan                   OrgPlan      @default(FREE)
+  stripeCustomerId       String?      @unique @map("stripe_customer_id")
+  stripeSubscriptionId   String?      @unique @map("stripe_subscription_id")
+  stripeSubscriptionStatus String?    @map("stripe_subscription_status")
+  trialEndsAt            DateTime?    @map("trial_ends_at")
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
 
   members         OrganizationMember[]
   invites         InviteToken[]
@@ -49,6 +54,13 @@ model Organization {
   githubConnection GithubConnection?
 
   @@map("organizations")
+}
+
+enum OrgPlan {
+  FREE
+  TRIAL
+  PRO
+  BUSINESS
 }
 
 enum OrgRole {

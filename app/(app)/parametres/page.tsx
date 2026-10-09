@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Sun, Moon, Monitor, LogOut, Download, Trash2, User, Palette, ShieldCheck,
-  Mail, Users, UserPlus, Copy, CheckCheck, RefreshCw, Send, Eye, EyeOff, Shield, Navigation, Flag, Plus, Pencil, X, Github, Webhook,
+  Mail, Users, UserPlus, Copy, CheckCheck, RefreshCw, Send, Eye, EyeOff, Shield, Navigation, Flag, Plus, Pencil, X, Github, Webhook, CreditCard, Sparkles,
 } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { createClient } from '@/lib/supabase/client'
@@ -14,7 +14,7 @@ import { useBreakpoint } from '@/lib/hooks/use-breakpoint'
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type Theme = 'light' | 'dark' | 'system'
-type Tab = 'profil' | 'general' | 'membres' | 'email' | 'droits' | 'jalons' | 'github'
+type Tab = 'profil' | 'general' | 'membres' | 'email' | 'droits' | 'jalons' | 'github' | 'facturation'
 type OrgRole = 'ADMIN' | 'MEMBRE'
 type ProjectRole = 'CO_RESPONSABLE' | 'CONTRIBUTEUR' | 'OBSERVATEUR'
 
@@ -1940,6 +1940,77 @@ function ProfilTab({ userEmail }: { userEmail: string | null }) {
   )
 }
 
+// ─── Billing Tab ──────────────────────────────────────────────────────────────
+
+function BillingTab() {
+  const { toast } = useToast()
+  const [planData, setPlanData] = useState<{ plan: string; subscriptionStatus: string | null; trialEndsAt: string | null } | null>(null)
+  const [portalLoading, setPortalLoading] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/billing/plan').then(r => r.ok ? r.json() : null).then(d => d && setPlanData(d))
+  }, [])
+
+  const openPortal = async () => {
+    setPortalLoading(true)
+    try {
+      const res = await fetch('/api/stripe/portal', { method: 'POST' })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+      else toast(data.error ?? 'Erreur', 'error')
+    } finally {
+      setPortalLoading(false)
+    }
+  }
+
+  const PLAN_LABELS: Record<string, string> = {
+    FREE: 'Gratuit', TRIAL: 'Essai Pro', PRO: 'Pro', BUSINESS: 'Business',
+  }
+
+  const plan = planData?.plan ?? 'FREE'
+  const isPaid = plan === 'PRO' || plan === 'BUSINESS' || plan === 'TRIAL'
+
+  return (
+    <div>
+      <div style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)', borderRadius: 'var(--radius-lg)', padding: 24, marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--color-accent-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Sparkles size={20} strokeWidth={1.5} style={{ color: 'var(--color-accent-default)' }} />
+          </div>
+          <div>
+            <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>Plan actuel</p>
+            <p style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>{PLAN_LABELS[plan] ?? plan}</p>
+          </div>
+        </div>
+        {planData?.subscriptionStatus && (
+          <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginBottom: 12 }}>
+            Statut : {planData.subscriptionStatus}
+            {planData.trialEndsAt && ` · Essai jusqu'au ${new Date(planData.trialEndsAt).toLocaleDateString('fr-FR')}`}
+          </p>
+        )}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {isPaid ? (
+            <button
+              onClick={openPortal}
+              disabled={portalLoading}
+              style={{ height: 36, padding: '0 16px', background: 'var(--color-accent-default)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: portalLoading ? 'not-allowed' : 'pointer', color: '#fff', opacity: portalLoading ? 0.7 : 1, fontFamily: 'var(--font-primary)' }}
+            >
+              {portalLoading ? 'Redirection…' : 'Gérer mon abonnement'}
+            </button>
+          ) : (
+            <a
+              href="/tarifs"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 36, padding: '0 16px', background: 'var(--color-accent-default)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', color: '#fff', textDecoration: 'none' }}
+            >
+              <Sparkles size={13} strokeWidth={1.5} /> Passer à Pro
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ParametresPage() {
@@ -2030,6 +2101,7 @@ export default function ParametresPage() {
     { key: 'droits', label: 'Droits', icon: <Shield size={14} strokeWidth={1.5} /> },
     { key: 'jalons', label: 'Jalons', icon: <Flag size={14} strokeWidth={1.5} /> },
     { key: 'github', label: 'GitHub', icon: <Github size={14} strokeWidth={1.5} /> },
+    { key: 'facturation', label: 'Facturation', icon: <CreditCard size={14} strokeWidth={1.5} /> },
   ]
 
   return (
@@ -2255,6 +2327,10 @@ export default function ParametresPage() {
           <div style={{ color: 'var(--color-text-tertiary)', fontSize: 14, padding: 20 }}>
             Seuls les administrateurs peuvent configurer l&apos;intégration GitHub.
           </div>
+        )}
+
+        {activeTab === 'facturation' && (
+          <BillingTab />
         )}
 
       </div>

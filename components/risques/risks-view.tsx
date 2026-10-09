@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, ShieldAlert, Pencil, Trash2, X, Grid3x3, Sparkles, Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
+import { usePlan } from '@/hooks/use-plan'
+import { UpgradeModal } from '@/components/billing/upgrade-modal'
 import {
   ProjectRisk,
   RiskProbability,
@@ -423,6 +425,8 @@ export function RisksView({ projectId }: RisksViewProps) {
   const [showForm, setShowForm] = useState(false)
   const [showMatrix, setShowMatrix] = useState(false)
   const [showAiPanel, setShowAiPanel] = useState(false)
+  const [upgradeFeature, setUpgradeFeature] = useState<string | null>(null)
+  const { limits } = usePlan()
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -507,7 +511,7 @@ export function RisksView({ projectId }: RisksViewProps) {
             <Grid3x3 size={14} strokeWidth={1.5} />
             {showMatrix ? 'Masquer matrice' : 'Matrice'}
           </button>
-          <button onClick={() => setShowAiPanel(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', background: showAiPanel ? 'var(--color-accent-subtle)' : 'none', border: `1px solid ${showAiPanel ? 'var(--color-accent-default)' : 'var(--color-border-default)'}`, borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', color: showAiPanel ? 'var(--color-accent-default)' : 'var(--color-text-secondary)' }}>
+          <button onClick={() => limits.ai ? setShowAiPanel(v => !v) : setUpgradeFeature('l\'analyse IA des risques')} style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', background: showAiPanel ? 'var(--color-accent-subtle)' : 'none', border: `1px solid ${showAiPanel ? 'var(--color-accent-default)' : 'var(--color-border-default)'}`, borderRadius: 'var(--radius-md)', fontSize: 13, cursor: 'pointer', color: showAiPanel ? 'var(--color-accent-default)' : 'var(--color-text-secondary)' }}>
             <Sparkles size={14} strokeWidth={1.5} /> IA
           </button>
           <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', background: 'var(--color-accent-default)', border: 'none', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 500, cursor: 'pointer', color: '#fff' }}>
@@ -643,6 +647,8 @@ export function RisksView({ projectId }: RisksViewProps) {
           </table>
         </div>
       )}
+
+      {upgradeFeature && <UpgradeModal feature={upgradeFeature} onClose={() => setUpgradeFeature(null)} />}
 
       {/* Modal d'édition */}
       {editingRisk && (
