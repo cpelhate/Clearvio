@@ -504,3 +504,51 @@ model ProjectDependency {
   @@unique([sourceProjectId, targetProjectId])
   @@map("project_dependencies")
 }
+
+enum ReportScheduleFrequency {
+  WEEKLY
+  BIMONTHLY
+  MONTHLY
+}
+
+enum ReportTrigger {
+  MANUAL
+  SCHEDULED
+}
+
+enum ReportSendStatus {
+  SUCCESS
+  PARTIAL
+  FAILED
+}
+
+model ReportConfig {
+  id                 String                   @id @default(cuid())
+  projectId          String                   @unique @map("project_id")
+  introText          String?                  @map("intro_text")
+  sections           String[]                 @default(["resume", "avancement", "pointsAttention", "prochainesEtapes", "risques"])
+  scheduleEnabled    Boolean                  @default(false) @map("schedule_enabled")
+  scheduleFrequency  ReportScheduleFrequency? @map("schedule_frequency")
+  scheduleDayOfWeek  Int?                     @map("schedule_day_of_week")
+  scheduleHour       Int?                     @map("schedule_hour")
+  scheduleRecipients String[]                 @default([]) @map("schedule_recipients")
+  nextSendAt         DateTime?                @map("next_send_at")
+  createdAt          DateTime                 @default(now()) @map("created_at")
+  updatedAt          DateTime                 @updatedAt @map("updated_at")
+
+  @@map("report_configs")
+}
+
+model ReportSendLog {
+  id         String           @id @default(cuid())
+  projectId  String           @map("project_id")
+  sentById   String           @map("sent_by_id")
+  sentAt     DateTime         @default(now()) @map("sent_at")
+  recipients String[]
+  sections   String[]
+  trigger    ReportTrigger    @default(MANUAL)
+  status     ReportSendStatus @default(SUCCESS)
+  errorMsg   String?          @map("error_msg")
+
+  @@map("report_send_logs")
+}

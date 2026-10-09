@@ -1,4 +1,10 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npx prisma generate && pnpm run build"
+  "buildCommand": "npx prisma generate && pnpm run build",
+  "crons": [
+    {
+      "path": "/api/cron/report-scheduler",
+      "schedule": "0 * * * *"
+    }
+  ]
 }
