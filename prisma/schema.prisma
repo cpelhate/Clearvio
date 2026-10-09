@@ -403,17 +403,37 @@ model ProjectRisk {
   @@map("project_risks")
 }
 
+enum DocumentVisibility {
+  PRIVATE
+  PROJECT
+  SPECIFIC
+}
+
 model ProjectDocument {
-  id           String   @id @default(cuid())
-  projectId    String
+  id           String             @id @default(cuid())
+  projectId    String             @map("project_id")
   name         String
-  storagePath  String
-  mimeType     String?
+  storagePath  String             @map("storage_path")
+  mimeType     String?            @map("mime_type")
   size         Int?
-  uploadedBy   String
-  createdAt    DateTime @default(now())
+  uploadedBy   String             @map("uploaded_by")
+  visibility   DocumentVisibility @default(PROJECT)
+  createdAt    DateTime           @default(now()) @map("created_at")
+
+  permissions  DocumentPermission[]
 
   @@map("project_documents")
+}
+
+model DocumentPermission {
+  id         String          @id @default(cuid())
+  documentId String          @map("document_id")
+  userId     String          @map("user_id")
+
+  document   ProjectDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, userId])
+  @@map("document_permissions")
 }
 
 model PermissionRule {

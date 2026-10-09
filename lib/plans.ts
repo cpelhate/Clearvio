@@ -1,11 +1,12 @@
 export type OrgPlan = 'FREE' | 'TRIAL' | 'PRO' | 'BUSINESS'
 
 export interface PlanLimits {
-  projects: number      // max projets (Infinity = illimité)
-  members: number       // max membres par org
-  ai: boolean           // fonctionnalités IA
-  github: boolean       // intégration GitHub
-  documents: boolean    // stockage documents
+  projects: number        // max projets (Infinity = illimité)
+  members: number         // max membres par org
+  ai: boolean             // fonctionnalités IA
+  github: boolean         // intégration GitHub
+  documents: boolean      // stockage documents
+  documentsQuota: number  // quota par projet en octets (0 = désactivé)
 }
 
 // Fichier central à modifier pour ajuster les limites et features par plan
@@ -16,13 +17,15 @@ export const PLAN_LIMITS: Record<OrgPlan, PlanLimits> = {
     ai: false,
     github: false,
     documents: false,
+    documentsQuota: 0,
   },
   TRIAL: {
     projects: Infinity,
     members: 20,
-    ai: false,         // IA désactivée pendant l'essai
+    ai: false,
     github: true,
     documents: true,
+    documentsQuota: 500 * 1024 * 1024, // 500 Mo
   },
   PRO: {
     projects: Infinity,
@@ -30,6 +33,7 @@ export const PLAN_LIMITS: Record<OrgPlan, PlanLimits> = {
     ai: true,
     github: true,
     documents: true,
+    documentsQuota: 500 * 1024 * 1024, // 500 Mo
   },
   BUSINESS: {
     projects: Infinity,
@@ -37,6 +41,7 @@ export const PLAN_LIMITS: Record<OrgPlan, PlanLimits> = {
     ai: true,
     github: true,
     documents: true,
+    documentsQuota: 1024 * 1024 * 1024, // 1 Go
   },
 }
 

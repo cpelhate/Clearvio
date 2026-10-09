@@ -12,7 +12,7 @@ interface PlanData {
 
 const DEFAULT: PlanData = {
   plan: 'FREE',
-  limits: { projects: 3, members: 5, ai: false, github: false, documents: false },
+  limits: { projects: 3, members: 5, ai: false, github: false, documents: false, documentsQuota: 0 },
   subscriptionStatus: null,
   trialEndsAt: null,
 }

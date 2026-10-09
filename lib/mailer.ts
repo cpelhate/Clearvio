@@ -81,6 +81,59 @@ export async function sendInviteEmail({
   }
 }
 
+export async function sendDocumentDeletedEmail({
+  organizationId,
+  toEmail,
+  fileName,
+  projectName,
+  deletedByName,
+}: {
+  organizationId: string
+  toEmail: string
+  fileName: string
+  projectName: string
+  deletedByName: string
+}): Promise<{ ok: boolean; error?: string }> {
+  const transporter = await getTransporter(organizationId)
+  if (!transporter) return { ok: false, error: 'SMTP non configuré' }
+
+  const config = await prisma.smtpConfig.findUnique({ where: { organizationId } })
+  if (!config) return { ok: false, error: 'SMTP non configuré' }
+
+  const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; margin: 0; padding: 40px 20px;">
+  <div style="max-width: 560px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+    <div style="background: #1D3461; padding: 32px; text-align: center;">
+      <h1 style="color: #fff; font-size: 22px; font-weight: 600; margin: 0;">Clearvio</h1>
+    </div>
+    <div style="padding: 32px;">
+      <h2 style="font-size: 18px; font-weight: 600; color: #111; margin: 0 0 16px;">Document supprimé</h2>
+      <p style="font-size: 14px; color: #555; line-height: 1.7; margin: 0 0 16px;">
+        Votre fichier <strong>${fileName}</strong> sur le projet <strong>${projectName}</strong>
+        a été supprimé par <strong>${deletedByName}</strong>.
+      </p>
+      <p style="font-size: 12px; color: #999; margin: 0;">Si vous avez des questions, contactez un administrateur de votre organisation.</p>
+    </div>
+  </div>
+</body>
+</html>`
+
+  try {
+    await transporter.sendMail({
+      from: `"${config.fromName}" <${config.fromEmail}>`,
+      to: toEmail,
+      subject: `Votre fichier "${fileName}" a été supprimé — Clearvio`,
+      html,
+    })
+    return { ok: true }
+  } catch (err: unknown) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Erreur inconnue' }
+  }
+}
+
 export async function sendTestEmail(organizationId: string, toEmail: string): Promise<{ ok: boolean; error?: string }> {
   const transporter = await getTransporter(organizationId)
   if (!transporter) return { ok: false, error: 'SMTP non configuré' }
