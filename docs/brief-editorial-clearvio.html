@@ -1,0 +1,468 @@
+<title>Brief éditorial — Clearvio</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #FFFFFF; --bg2: #F7F8FA; --bg3: #EDEEF2;
+  --bd: #E4E6EC; --bd2: #CDD0DA;
+  --tx: #0F1117; --tx2: #4B5163; --tx3: #8892A4;
+  --ac: #1D3461; --acbg: #EEF2FF; --acsub: #C7D2F5;
+  --ok: #0F7B55; --wn: #8A5C00; --dg: #B91C1C;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D0F14; --bg2: #141720; --bg3: #1C1F2B;
+    --bd: #252836; --bd2: #323649;
+    --tx: #F0F2F7; --tx2: #8D96AA; --tx3: #5C6476;
+    --ac: #4D72C8; --acbg: #1A2040; --acsub: #263060;
+    --ok: #2ECC8F; --wn: #F5A623; --dg: #F87171;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D0F14; --bg2: #141720; --bg3: #1C1F2B;
+  --bd: #252836; --bd2: #323649;
+  --tx: #F0F2F7; --tx2: #8D96AA; --tx3: #5C6476;
+  --ac: #4D72C8; --acbg: #1A2040; --acsub: #263060;
+  --ok: #2ECC8F; --wn: #F5A623; --dg: #F87171;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box }
+body {
+  margin: 0; padding: 40px 24px 80px;
+  background: var(--bg); color: var(--tx);
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px; line-height: 1.7;
+}
+.wrap { max-width: 860px; margin: 0 auto }
+h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 6px; line-height: 1.1 }
+.subtitle { font-size: 15px; color: var(--tx2); margin: 0 0 40px }
+h2 {
+  font-size: 13px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--ac); margin: 48px 0 20px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--bd);
+}
+h3 { font-size: 17px; font-weight: 500; margin: 28px 0 8px; letter-spacing: -0.01em }
+p { margin: 0 0 12px; color: var(--tx2) }
+p strong { color: var(--tx); font-weight: 500 }
+.block {
+  background: var(--bg2); border: 1px solid var(--bd);
+  border-radius: 12px; padding: 20px 24px; margin-bottom: 16px;
+}
+.block-accent {
+  background: var(--acbg); border: 1px solid var(--acsub);
+  border-radius: 12px; padding: 20px 24px; margin-bottom: 16px;
+}
+.label {
+  display: inline-block; font-size: 11px; font-weight: 500;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--ac); background: var(--acbg);
+  padding: 2px 8px; border-radius: 9999px; margin-bottom: 8px;
+}
+.label-ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.label-wn { color: var(--wn); background: color-mix(in srgb, var(--wn) 12%, transparent); }
+.placeholder {
+  display: inline-block; font-family: 'DM Mono', monospace; font-size: 13px;
+  color: var(--wn); background: color-mix(in srgb, var(--wn) 10%, transparent);
+  padding: 1px 6px; border-radius: 4px;
+}
+.confirmed {
+  display: inline-block; font-family: 'DM Mono', monospace; font-size: 13px;
+  color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, transparent);
+  padding: 1px 6px; border-radius: 4px;
+}
+blockquote {
+  margin: 0 0 12px; padding: 12px 16px;
+  border-left: 3px solid var(--ac); background: var(--bg3);
+  border-radius: 0 8px 8px 0; font-style: normal;
+  font-size: 15px; color: var(--tx);
+}
+ul { margin: 0 0 12px; padding-left: 20px }
+ul li { color: var(--tx2); margin-bottom: 6px }
+table { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 16px }
+th { text-align: left; font-weight: 500; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--tx3); padding: 8px 12px; border-bottom: 1px solid var(--bd) }
+td { padding: 10px 12px; border-bottom: 1px solid var(--bd); color: var(--tx2); vertical-align: top }
+td:first-child { font-weight: 500; color: var(--tx); white-space: nowrap }
+.meta { font-size: 13px; color: var(--tx3); margin-bottom: 40px; display: flex; gap: 20px; flex-wrap: wrap }
+.meta span::before { content: '· '; margin-right: 4px }
+.meta span:first-child::before { content: '' }
+</style>
+
+<div class="wrap">
+
+<div style="margin-bottom: 32px">
+  <div class="label">Brief éditorial</div>
+  <h1>Clearvio — Site vitrine</h1>
+  <p class="subtitle">Formalisation du contenu textuel pour transmission à un développeur ou prestataire</p>
+  <div class="meta">
+    <span>Version 1.0 — Octobre 2026</span>
+    <span>Édité par NEVARIO</span>
+    <span>Statut : en cours de validation</span>
+  </div>
+  <div class="block-accent">
+    <p style="margin:0; font-size:14px"><strong>Convention de lecture :</strong> les valeurs <span class="confirmed">confirmées</span> sont figées. Les valeurs <span class="placeholder">à compléter</span> sont des placeholders à remplacer avant la mise en ligne.</p>
+  </div>
+</div>
+
+<!-- ─── 1. IDENTITÉ & POSITIONNEMENT ─── -->
+<h2>1. Identité &amp; positionnement</h2>
+
+<div class="block">
+  <h3>Nom du produit</h3>
+  <blockquote>Clearvio</blockquote>
+</div>
+
+<div class="block">
+  <h3>Éditeur</h3>
+  <blockquote>NEVARIO</blockquote>
+</div>
+
+<div class="block">
+  <h3>Accroche principale (H1 hero)</h3>
+  <blockquote>Voyez tous vos projets sur une seule ligne de temps.</blockquote>
+</div>
+
+<div class="block">
+  <h3>Chapeau hero (sous-titre)</h3>
+  <blockquote>Quand un projet glisse, Clearvio vous montre lequel il entraîne. Complet sans être lourd, pensé pour les PME, ETI et collectivités.</blockquote>
+</div>
+
+<div class="block">
+  <h3>Label de catégorie (tag hero)</h3>
+  <blockquote>Gestion de projet et portefeuille</blockquote>
+</div>
+
+<!-- ─── 2. NAVIGATION ─── -->
+<h2>2. Navigation principale</h2>
+
+<table>
+  <thead><tr><th>Item</th><th>Libellé</th><th>Ancre cible</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Produit</td><td>#produit</td></tr>
+    <tr><td>2</td><td>Solutions</td><td>#profils</td></tr>
+    <tr><td>3</td><td>Ressources</td><td>#faq</td></tr>
+    <tr><td>4</td><td>Tarifs</td><td>#tarifs</td></tr>
+    <tr><td>CTA secondaire</td><td>Connexion</td><td>/login</td></tr>
+    <tr><td>CTA principal nav</td><td>Demander une démo</td><td>#demo</td></tr>
+  </tbody>
+</table>
+
+<!-- ─── 3. SECTION HERO ─── -->
+<h2>3. Section Hero</h2>
+
+<div class="block">
+  <h3>Boutons CTA</h3>
+  <ul>
+    <li><strong>Primaire :</strong> « Demander une démo » → #demo</li>
+    <li><strong>Secondaire :</strong> « Voir les tarifs » → #tarifs</li>
+  </ul>
+</div>
+
+<div class="block">
+  <h3>Démo visuelle (widget Gantt inter-projets)</h3>
+  <p>Intitulé de la section : <strong>Roadmap inter-projets</strong></p>
+  <p>Légende temporelle : <strong>T4 2026 · T1 2027</strong></p>
+  <table>
+    <thead><tr><th>Projet</th><th>Statut affiché</th></tr></thead>
+    <tbody>
+      <tr><td>Refonte SI RH</td><td>En retard</td></tr>
+      <tr><td>Portail citoyen</td><td>Impacté</td></tr>
+      <tr><td>Migration cloud</td><td>En cours</td></tr>
+      <tr><td>Plan de formation</td><td>Terminé</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Alerte critique (texte infobulle) :</strong><br>
+  « Alerte critique : le jalon « Livraison V1 » de Refonte SI RH glisse de 9 jours. Portail citoyen, qui en dépend, est impacté. »</p>
+</div>
+
+<!-- ─── 4. BANDE DE PROMESSES ─── -->
+<h2>4. Bande de promesses clés</h2>
+
+<table>
+  <thead><tr><th>Titre</th><th>Corps</th></tr></thead>
+  <tbody>
+    <tr><td>Tablette en première classe</td><td>Swipe, pinch-to-zoom, vues Manager lisibles en déplacement.</td></tr>
+    <tr><td>Dépendances entre projets</td><td>Liez un jalon d'un projet à celui d'un autre. L'impact se voit tout de suite.</td></tr>
+    <tr><td>Alertes sur les dérives</td><td>Retards, surcharge, jalons à risque : vous êtes prévenu avant le comité.</td></tr>
+  </tbody>
+</table>
+
+<!-- ─── 5. SECTION PROFILS ─── -->
+<h2>5. Section Profils — « Pour qui »</h2>
+
+<div class="block">
+  <h3>En-tête de section</h3>
+  <p><strong>Surtitre :</strong> Pour qui</p>
+  <blockquote>Chacun voit ce dont il a besoin. Rien de plus.</blockquote>
+  <p><strong>Chapeau :</strong> L'interface s'adapte au profil connecté : le manager ne voit pas les mêmes écrans que le collaborateur.</p>
+</div>
+
+<div class="block">
+  <h3>Profil 1 — Chef de projet</h3>
+  <p><strong>Titre onglet :</strong> Chef de projet</p>
+  <p><strong>Titre panneau :</strong> Pilotez sans ressaisir</p>
+  <p><strong>Chapeau :</strong> Créez un projet exploitable en deux minutes, depuis zéro ou depuis un modèle de votre organisation.</p>
+  <ul>
+    <li>Tâches sur 3 niveaux, Gantt, Kanban, liste et calendrier</li>
+    <li>Risques, actions et problèmes au même endroit</li>
+    <li>Rapport d'avancement pré-rempli, export PDF</li>
+  </ul>
+  <p><strong>Capture écran :</strong> <span class="placeholder">vue Gantt du projet</span></p>
+</div>
+
+<div class="block">
+  <h3>Profil 2 — Manager</h3>
+  <p><strong>Titre onglet :</strong> Manager</p>
+  <p><strong>Titre panneau :</strong> Le portefeuille en un coup d'œil</p>
+  <p><strong>Chapeau :</strong> Retards, jalons critiques et dépendances entre projets, lisibles sur tablette en déplacement.</p>
+  <ul>
+    <li>Roadmap visuelle inter-projets</li>
+    <li>KPIs agrégés et projets en retard</li>
+    <li>Alertes critiques par email</li>
+  </ul>
+  <p><strong>Capture écran :</strong> <span class="placeholder">tableau de bord portefeuille sur tablette</span></p>
+</div>
+
+<div class="block">
+  <h3>Profil 3 — Dirigeant</h3>
+  <p><strong>Titre onglet :</strong> Dirigeant</p>
+  <p><strong>Titre panneau :</strong> L'essentiel, sans réunion</p>
+  <p><strong>Chapeau :</strong> Une lecture rapide de l'état des projets stratégiques, depuis votre tablette ou votre mobile.</p>
+  <ul>
+    <li>Avancement global par projet</li>
+    <li>Projets par catégorie et priorité</li>
+    <li>Rapports exportables pour le comité</li>
+  </ul>
+  <p><strong>Capture écran :</strong> <span class="placeholder">KPIs portefeuille en lecture mobile</span></p>
+</div>
+
+<div class="block">
+  <h3>Profil 4 — Collaborateur</h3>
+  <p><strong>Titre onglet :</strong> Collaborateur</p>
+  <p><strong>Titre panneau :</strong> Mes tâches, et seulement elles</p>
+  <p><strong>Chapeau :</strong> Une vue personnelle claire, mise à jour en deux gestes depuis le téléphone.</p>
+  <ul>
+    <li>Vue personnelle des tâches assignées</li>
+    <li>Commentaires et mentions @nom</li>
+    <li>Notifications quand quelque chose change</li>
+  </ul>
+  <p><strong>Capture écran :</strong> <span class="placeholder">vue Mes tâches sur mobile</span></p>
+</div>
+
+<!-- ─── 6. SECTION PRODUIT / VUES ─── -->
+<h2>6. Section Produit — Vues &amp; fonctionnalités</h2>
+
+<div class="block">
+  <h3>En-tête de section</h3>
+  <p><strong>Surtitre :</strong> Le produit</p>
+  <blockquote>Toutes les vues d'un chef de projet, sans la courbe d'apprentissage.</blockquote>
+</div>
+
+<table>
+  <thead><tr><th>Vue</th><th>Titre</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td>1 (carte large)</td><td>Gantt interactif</td><td>Glisser-déposer, dépendances fin-début et début-début, jalons, export PNG.</td></tr>
+    <tr><td>2</td><td>Kanban</td><td>Statuts configurables, limite WIP, swipe sur tablette.</td></tr>
+    <tr><td>3</td><td>Liste et calendrier</td><td>Hiérarchie sur 3 niveaux, colonnes et filtres sauvegardés.</td></tr>
+    <tr><td>4</td><td>Risques</td><td>Registre et matrice 3×3, indice de sévérité calculé.</td></tr>
+    <tr><td>5</td><td>Rapport d'avancement</td><td>Pré-rempli depuis vos données, export PDF à votre logo.</td></tr>
+  </tbody>
+</table>
+
+<!-- ─── 7. SECTION MODULES ─── -->
+<h2>7. Section Modules — Architecture modulaire</h2>
+
+<div class="block">
+  <h3>En-tête de section</h3>
+  <p><strong>Surtitre :</strong> Modulaire</p>
+  <blockquote>Commencez simple. Grandissez sans changer d'outil.</blockquote>
+  <p><strong>Chapeau :</strong> Un noyau de gestion de projet inclus partout, et des modules que vous activez quand vous en avez besoin. Désactiver un module ne supprime jamais vos données.</p>
+</div>
+
+<div class="block">
+  <h3>Noyau (inclus dans tous les plans)</h3>
+  <p>Projets · Tâches · Kanban · Gantt · Équipes · Champs personnalisés · Alertes</p>
+</div>
+
+<div class="block">
+  <h3>Modules optionnels</h3>
+  <ul>
+    <li>Tableaux de bord et KPIs</li>
+    <li>Portefeuille et roadmap</li>
+  </ul>
+</div>
+
+<div class="block">
+  <h3>À venir (bandeau dashed)</h3>
+  <p>Finances, Temps passés, Workflows, Ticketing, Intégrations Teams, Slack et Google</p>
+</div>
+
+<!-- ─── 8. PROGRAMME TESTEURS ─── -->
+<h2>8. Section Programme testeurs</h2>
+
+<div class="block">
+  <h3>En-tête de section</h3>
+  <p><strong>Surtitre :</strong> Programme testeurs</p>
+  <blockquote>Construisons-le avec ceux qui pilotent vraiment des projets.</blockquote>
+  <p><strong>Chapeau :</strong> Chefs de projet, managers, PMO, dirigeants : nous ouvrons Clearvio à un panel restreint qui l'utilise dans ses conditions réelles et oriente la feuille de route.</p>
+</div>
+
+<div class="block">
+  <h3>CTA</h3>
+  <p><strong>Bouton :</strong> « Candidater au programme » → #demo</p>
+  <p><strong>Note sous le bouton :</strong> <span class="placeholder">[Nombre de places et dates à préciser]</span></p>
+</div>
+
+<!-- ─── 9. SÉCURITÉ ─── -->
+<h2>9. Section Données &amp; sécurité</h2>
+
+<div class="block">
+  <h3>En-tête de section</h3>
+  <p><strong>Surtitre :</strong> Données et sécurité</p>
+  <blockquote>Vos données projet restent les vôtres.</blockquote>
+</div>
+
+<table>
+  <thead><tr><th>Carte</th><th>Titre</th><th>Corps</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Isolation par organisation</td><td>Cloisonnement au niveau de la base de données (Row Level Security).</td></tr>
+    <tr><td>2</td><td>Accès sécurisés</td><td>HTTPS partout, sessions à jetons renouvelés, accès sur invitation.</td></tr>
+    <tr><td>3</td><td>RGPD et accessibilité</td><td>Droit à l'effacement intégré. Niveau WCAG 2.1 AA visé, mode Accessibilité dédié.</td></tr>
+    <tr><td>4</td><td>Hébergement en France</td><td>Migration vers un hébergeur français prévue avant le lancement commercial.<br><span class="placeholder">[Préciser le nom de l'hébergeur quand choix arrêté]</span></td></tr>
+  </tbody>
+</table>
+
+<!-- ─── 10. TARIFS ─── -->
+<h2>10. Section Tarifs</h2>
+
+<div class="block">
+  <h3>En-tête de section</h3>
+  <p><strong>Surtitre :</strong> Tarifs</p>
+  <blockquote>Un prix par utilisateur. Lisible et prévisible.</blockquote>
+</div>
+
+<table>
+  <thead><tr><th>Plan</th><th>Prix</th><th>Détail</th><th>CTA</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Découverte</td>
+      <td>0 €</td>
+      <td>3 projets actifs · 5 utilisateurs<br>Noyau de gestion de projet<br>500 Mo de stockage</td>
+      <td>Demander un accès → #demo</td>
+    </tr>
+    <tr>
+      <td>Équipe <em>(Recommandé)</em></td>
+      <td>10 € / utilisateur / mois</td>
+      <td>Projets illimités · jusqu'à 25 utilisateurs<br>Tableaux de bord, portefeuille et roadmap<br>20 Go · support email</td>
+      <td>Demander une démo → #demo</td>
+    </tr>
+    <tr>
+      <td>Organisation</td>
+      <td>20 € / utilisateur / mois</td>
+      <td>Utilisateurs illimités · tous les modules<br>Champs personnalisés illimités · SSO<br>100 Go · support prioritaire</td>
+      <td>Demander une démo → #demo</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="block">
+  <h3>Note tarifaire</h3>
+  <p>Seuls les chefs de projet et managers sont facturés plein tarif. Les collaborateurs en lecture seule sont gratuits. Un collaborateur actif (qui crée ou modifie des tâches) est facturé <span class="confirmed">5 €/mois</span>.</p>
+</div>
+
+<!-- ─── 11. FAQ ─── -->
+<h2>11. Section FAQ</h2>
+
+<table>
+  <thead><tr><th>N°</th><th>Question</th><th>Réponse</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>Faut-il une formation pour utiliser Clearvio ?</td>
+      <td>Non. Chaque écran est conçu pour être compris sans documentation, et un projet créé est exploitable immédiatement grâce à des valeurs par défaut.</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>Clearvio fonctionne-t-il sur tablette et mobile ?</td>
+      <td>Oui. La tablette est traitée comme un support à part entière. Sur mobile, les vues Kanban et tableaux de bord sont disponibles.</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>Où sont hébergées mes données ?</td>
+      <td><span class="placeholder">[À compléter avec l'hébergement exact.]</span> Une migration vers un hébergeur français est prévue avant le lancement commercial.</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>Peut-on lier des projets entre eux ?</td>
+      <td>Oui. Un jalon ou une tâche d'un projet peut dépendre d'un autre projet. Un retard déclenche une alerte pour les deux chefs de projet et le manager.</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>Comment obtenir un accès ?</td>
+      <td>L'accès se fait sur invitation. Demandez une démo : nous créons votre organisation et vous invitez votre équipe.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ─── 12. SECTION DÉMO ─── -->
+<h2>12. Section CTA démo</h2>
+
+<div class="block">
+  <blockquote>Voyez Clearvio sur vos propres projets.</blockquote>
+  <p><strong>Sous-titre :</strong> 30 minutes, en visio, avec le fondateur.</p>
+  <p><strong>Bouton :</strong> « Demander une démo »<br>
+  <strong>URL :</strong> <span class="placeholder">[Lien Calendly ou équivalent à ajouter]</span></p>
+</div>
+
+<!-- ─── 13. FOOTER ─── -->
+<h2>13. Pied de page</h2>
+
+<div class="block">
+  <h3>Colonne marque</h3>
+  <p><strong>Baseline :</strong> La gestion de projet claire, pour les organisations françaises.</p>
+</div>
+
+<table>
+  <thead><tr><th>Colonne</th><th>Liens</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Produit</td>
+      <td>Fonctionnalités (#produit) · Pour qui (#profils) · Tarifs (#tarifs) · Feuille de route (<span class="placeholder">URL à définir</span>)</td>
+    </tr>
+    <tr>
+      <td>Entreprise</td>
+      <td>Contact (#demo) · À propos (<span class="placeholder">URL à définir</span>) · Programme testeurs (<span class="placeholder">URL à définir</span>)</td>
+    </tr>
+    <tr>
+      <td>Ressources</td>
+      <td>FAQ (#faq) · Blog (<span class="placeholder">URL à définir</span>) · Mentions légales · Confidentialité · Cookies</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="block">
+  <h3>Barre inférieure</h3>
+  <p><strong>Copyright :</strong> © 2026 Clearvio · édité par NEVARIO</p>
+  <p><strong>Lien LinkedIn :</strong> <span class="placeholder">[URL page LinkedIn à créer]</span></p>
+</div>
+
+<!-- ─── 14. RÉCAP PLACEHOLDERS ─── -->
+<h2>14. Récapitulatif des éléments à compléter</h2>
+
+<table>
+  <thead><tr><th>Élément</th><th>Section</th><th>Statut</th></tr></thead>
+  <tbody>
+    <tr><td>Tarif collaborateur actif</td><td>Tarifs</td><td><span class="confirmed">5 €/mois ✓</span></td></tr>
+    <tr><td>Nombre de places / dates programme testeurs</td><td>Programme testeurs</td><td><span class="placeholder">À décider</span></td></tr>
+    <tr><td>Hébergeur français exact</td><td>Sécurité + FAQ Q3</td><td><span class="placeholder">À décider</span></td></tr>
+    <tr><td>Lien prise de RDV démo (Calendly ou équivalent)</td><td>Nav, Hero, CTA, Tarifs, Footer Contact</td><td><span class="placeholder">À configurer</span></td></tr>
+    <tr><td>Page LinkedIn Clearvio</td><td>Footer</td><td><span class="placeholder">À créer</span></td></tr>
+    <tr><td>Captures écran produit (4 profils)</td><td>Section Profils</td><td><span class="placeholder">À produire</span></td></tr>
+    <tr><td>URLs pages légales (mentions, confidentialité, cookies)</td><td>Footer</td><td><span class="placeholder">À créer</span></td></tr>
+    <tr><td>URL page Feuille de route</td><td>Footer Produit</td><td><span class="placeholder">À créer</span></td></tr>
+    <tr><td>URL page À propos</td><td>Footer Entreprise</td><td><span class="placeholder">À créer</span></td></tr>
+    <tr><td>URL page Blog</td><td>Footer Ressources</td><td><span class="placeholder">À créer</span></td></tr>
+  </tbody>
+</table>
+
+</div>
